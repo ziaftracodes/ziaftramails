@@ -1,0 +1,39 @@
+name: Daily Outreach Sender
+
+on:
+  schedule:
+    # Runs every day at 10:00 AM UTC (around 3:30 PM IST)
+    - cron: '0 10 * * *'
+  workflow_dispatch: # This allows you to click "Run workflow" manually in GitHub
+
+jobs:
+  execute-outreach:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install Dependencies
+        working-directory: ./sender
+        run: npm install
+
+      - name: Run The Living Machine (Sender)
+        working-directory: ./sender
+        run: node index.js
+        env:
+          # These will be stored securely in GitHub Repo Settings -> Secrets
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+          BREVO_API_KEY: ${{ secrets.BREVO_API_KEY }}
+          MAILJET_API_KEY: ${{ secrets.MAILJET_API_KEY }}
+          MAILJET_API_SECRET: ${{ secrets.MAILJET_API_SECRET }}
+          MAILGUN_API_KEY: ${{ secrets.MAILGUN_API_KEY }}
+          MAILGUN_DOMAIN: ${{ secrets.MAILGUN_DOMAIN }}
+          SENDER_EMAIL: ${{ secrets.SENDER_EMAIL }}
+          DAILY_LIMIT: ${{ secrets.DAILY_LIMIT }}

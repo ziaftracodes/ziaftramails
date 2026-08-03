@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ziaftra Mails - Command Center</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@500;700&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Ziaftra Mails</h1>
+            <p>Automated Outreach Command Center</p>
+        </header>
+
+        <div class="metrics-grid">
+            <div class="metric-card">
+                <h3>Total Leads</h3>
+                <p id="metric-total">0</p>
+            </div>
+            <div class="metric-card pending">
+                <h3>Pending</h3>
+                <p id="metric-pending">0</p>
+            </div>
+            <div class="metric-card sent">
+                <h3>Sent Emails</h3>
+                <p id="metric-sent">0</p>
+            </div>
+            <div class="metric-card replied">
+                <h3>Replies</h3>
+                <p id="metric-replied">0</p>
+            </div>
+        </div>
+
+        <section class="data-section">
+            <div class="section-header">
+                <h2>Agency Leads</h2>
+                <button id="refresh-btn">Refresh Data</button>
+            </div>
+            
+            <div class="table-container">
+                <table id="leads-table">
+                    <thead>
+                        <tr>
+                            <th>Agency Name</th>
+                            <th>Email</th>
+                            <th>Status</th>
+                            <th>Added On</th>
+                        </tr>
+                    </thead>
+                    <tbody id="leads-body">
+                        <tr>
+                            <td colspan="4" class="empty-state">Loading data from Supabase...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    </div>
+
+    <!-- Supabase JS Client via CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="app.js"></script>
+</body>
+</html>
