@@ -84,25 +84,7 @@ async function sendViaMailjet(toEmail, toName, htmlContent) {
     }
 }
 
-async function sendViaMailgun(toEmail, toName, htmlContent) {
-    const domain = process.env.MAILGUN_DOMAIN;
-    const auth = Buffer.from('api:' + process.env.MAILGUN_API_KEY).toString('base64');
-    const formData = new URLSearchParams();
-    formData.append('from', `Fayz <${process.env.SENDER_EMAIL}>`);
-    formData.append('to', toEmail);
-    formData.append('subject', `Extra development capacity for ${toName}`);
-    formData.append('html', htmlContent);
-
-    const response = await fetch(`https://api.mailgun.net/v3/${domain}/messages`, {
-        method: 'POST',
-        headers: { 'Authorization': 'Basic ' + auth, 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: formData
-    });
-    if (!response.ok) {
-        const err = await response.json();
-        throw new Error(`Mailgun Error: ${JSON.stringify(err)}`);
-    }
-}
+// Removed Mailgun
 
 async function runSender() {
     console.log('🚀 Starting Ziaftra Mails - Mega Load Balancer...');
@@ -170,14 +152,8 @@ async function runSender() {
                     else console.log(`[DRY RUN] Sent via Mailjet successfully.`);
                     counts.mailjet++;
                 } 
-                else if (counts.mailgun < 100) {
-                    console.log(`📡 Routing via: MAILGUN (Usage: ${counts.mailgun + 1}/100)`);
-                    if (!isDryRun) await sendViaMailgun(agency.email, agency.name, htmlContent);
-                    else console.log(`[DRY RUN] Sent via Mailgun successfully.`);
-                    counts.mailgun++;
-                } 
                 else {
-                    console.log(`🛑 Daily limits reached across ALL 4 providers (Total 700). Stopping.`);
+                    console.log(`🛑 Daily limits reached across ALL 3 providers (Total 600). Stopping.`);
                     break; 
                 }
 
