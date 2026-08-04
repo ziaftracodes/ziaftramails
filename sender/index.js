@@ -142,34 +142,46 @@ async function runSender() {
             `;
 
             try {
+                // MEGA LOAD BALANCER
+                const isDryRun = process.env.DRY_RUN === 'true';
+
                 if (counts.resend < 100) {
                     console.log(`📡 Routing via: RESEND (Usage: ${counts.resend + 1}/100)`);
-                    const { error: resendError } = await resend.emails.send({
-                        from: `Fayz <${process.env.SENDER_EMAIL}>`,
-                        to: [agency.email],
-                        subject: `Extra development capacity for ${agency.name}`,
-                        html: htmlContent,
-                    });
-                    if (resendError) throw new Error(resendError.message);
+                    if (!isDryRun) {
+                        const { error: resendError } = await resend.emails.send({
+                            from: `Fayz <${process.env.SENDER_EMAIL}>`,
+                            to: [agency.email],
+                            subject: `Extra development capacity for ${agency.name}`,
+                            html: htmlContent,
+                        });
+                        if (resendError) throw new Error(resendError.message);
+                    } else { console.log(`[DRY RUN] Sent via Resend successfully.`); }
                     counts.resend++;
                 } 
                 else if (counts.brevo < 300) {
                     console.log(`📡 Routing via: BREVO (Usage: ${counts.brevo + 1}/300)`);
-                    await sendViaBrevo(agency.email, agency.name, htmlContent);
+                    if (!isDryRun) await sendViaBrevo(agency.email, agency.name, htmlContent);
+                    else console.log(`[DRY RUN] Sent via Brevo successfully.`);
                     counts.brevo++;
                 } 
                 else if (counts.mailjet < 200) {
                     console.log(`📡 Routing via: MAILJET (Usage: ${counts.mailjet + 1}/200)`);
-                    await sendViaMailjet(agency.email, agency.name, htmlContent);
+                    if (!isDryRun) await sendViaMailjet(agency.email, agency.name, htmlContent);
+                    else console.log(`[DRY RUN] Sent via Mailjet successfully.`);
                     counts.mailjet++;
                 } 
                 else if (counts.mailgun < 100) {
                     console.log(`📡 Routing via: MAILGUN (Usage: ${counts.mailgun + 1}/100)`);
-                    await sendViaMailgun(agency.email, agency.name, htmlContent);
+                    if (!isDryRun) await sendViaMailgun(agency.email, agency.name, htmlContent);
+                    else console.log(`[DRY RUN] Sent via Mailgun successfully.`);
                     counts.mailgun++;
                 } 
+                else {
+                    console.log(`🛑 Daily limits reached across ALL 4 providers (Total 700). Stopping.`);
+                    break; 
+                }
 
-                // Update Database to SENT
+                // Update Database to SENT (Even in Dry Run so we can see the DB change)
                 await supabase
                     .from('agencies')
                     .update({ status: 'SENT', last_contacted_at: new Date().toISOString() })
@@ -181,10 +193,11 @@ async function runSender() {
                 console.error(`❌ Failed to send to ${agency.email}:`, err.message);
             }
 
-            // Humanize sending speed
+            // Humanize sending speed (Speed it up massively if it's a Dry Run)
             if (index < leads.length - 1) {
-                const waitTimeMs = randomDelay(60000, 180000); 
-                console.log(`⏳ Humanizing delay... Waiting ${Math.round(waitTimeMs / 1000)}s`);
+                const isDryRun = process.env.DRY_RUN === 'true';
+                const waitTimeMs = isDryRun ? 50 : randomDelay(60000, 180000); 
+                if(!isDryRun) console.log(`⏳ Humanizing delay... Waiting ${Math.round(waitTimeMs / 1000)}s`);
                 await sleep(waitTimeMs);
             }
         }
