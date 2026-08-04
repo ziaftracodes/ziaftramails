@@ -115,12 +115,15 @@ async function runSender() {
             console.log(`\n📨 [${index + 1}/${leads.length}] Target: ${agency.name} (${agency.email})`);
 
             const htmlContent = `
-                <p>Hi team at ${agency.name},</p>
-                <p>My name is Fayz, I'm a full-stack developer based in India.</p>
-                <p>I’m reaching out because I work with agencies that sometimes need extra development support when their internal team gets busy.</p>
-                <p>If your team ever needs help with overflow work or full-stack implementation (React, Next.js, Node.js, PostgreSQL), I would love to be considered as an external development partner. I’m not looking for a full-time role—just to be an extra pair of hands when you need them.</p>
-                <p>If you're open to it, I'd love to send over my portfolio. I'm also happy to do a small fixed-scope trial task so you can see how I work in a real project environment.</p>
-                <p>Best regards,<br><strong>Fayz</strong><br>Full-Stack Developer</p>
+                <p>Hi team,</p>
+                <p>${agency.personalized_intro || ''}</p>
+                <p>I'm a full-stack developer (React, Next.js, Node.js) reaching out to see if ${agency.name} ever works with external development partners during busy periods.</p>
+                <p>My entire focus is partnering with established digital agencies to handle their paid overflow and outsourcing work on a project or contract basis.</p>
+                <p>If your internal team ever gets overloaded or you need to offload web applications, API integrations, or frontend/backend implementation, I would love to be your go-to external partner.</p>
+                <p>I know it is risky to trust a new developer with your client work. That is why I am happy to do a completely free, fixed-scope trial task—<b>literally any kind of work you want to throw at me</b>—just so you can evaluate my code quality and communication firsthand.</p>
+                <p>You can check out my portfolio here: <b><a href="https://fayzz.in">https://fayzz.in</a></b></p>
+                <p>If you are open to an external partnership—or if you just want to test me out with a free task this week—I'd love to chat.</p>
+                <p>Best,<br>Fayz<br>Full-Stack Developer<br><a href="https://fayzz.in">fayzz.in</a></p>
             `;
 
             try {

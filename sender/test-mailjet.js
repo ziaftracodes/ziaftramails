@@ -15,9 +15,12 @@ async function sendTestEmail() {
                 Messages: [
                     {
                         From: { Email: process.env.SENDER_EMAIL, Name: 'Ziaftra' },
-                        To: [{ Email: 'ziaftra@gmail.com', Name: 'Ziaftra Test' }],
-                        Subject: 'Test from Ziaftra Mails 🚀 (Mailjet)',
-                        HTMLPart: '<h1>It works!</h1><p>The Mailjet API integration is fully operational.</p>'
+                        To: [
+                            { Email: 'ziaftra@gmail.com', Name: 'Ziaftra Test' },
+                            { Email: 'hello@fayzz.in', Name: 'Fayz Zoho' }
+                        ],
+                        Subject: 'Test from Ziaftra Mails 🚀 (MAILJET)',
+                        HTMLPart: '<h1>It works!</h1><p>This email was sent via <b>MAILJET</b>. We are stress testing the delivery to both Gmail and Zoho.</p>'
                     }
                 ]
             })
