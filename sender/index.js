@@ -146,14 +146,16 @@ async function runSender() {
                     else console.log(`[DRY RUN] Sent via Brevo successfully.`);
                     counts.brevo++;
                 } 
+                /*
                 else if (counts.mailjet < 200) {
                     console.log(`📡 Routing via: MAILJET (Usage: ${counts.mailjet + 1}/200)`);
                     if (!isDryRun) await sendViaMailjet(agency.email, agency.name, htmlContent);
                     else console.log(`[DRY RUN] Sent via Mailjet successfully.`);
                     counts.mailjet++;
                 } 
+                */
                 else {
-                    console.log(`🛑 Daily limits reached across ALL 3 providers (Total 600). Stopping.`);
+                    console.log(`🛑 Daily limits reached across ALL 2 active providers (Total 400). Stopping.`);
                     break; 
                 }
 
