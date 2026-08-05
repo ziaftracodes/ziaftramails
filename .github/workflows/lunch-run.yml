@@ -1,0 +1,48 @@
+name: Lunch Run (Cloud Pipeline)
+
+on:
+  workflow_dispatch: # This allows us to trigger it manually via CLI or GitHub UI
+
+jobs:
+  execute-pipeline:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      # -- SCRAPER PHASE --
+      - name: Install Scraper Dependencies
+        working-directory: ./scraper
+        run: npm install
+
+      - name: Run Scraper (10 Leads)
+        working-directory: ./scraper
+        run: node index.js
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+
+      # -- SENDER PHASE --
+      - name: Install Sender Dependencies
+        working-directory: ./sender
+        run: npm install
+
+      - name: Run Sender (Blast Emails)
+        working-directory: ./sender
+        run: node index.js
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+          BREVO_API_KEY: ${{ secrets.BREVO_API_KEY }}
+          MAILJET_API_KEY: ${{ secrets.MAILJET_API_KEY }}
+          MAILJET_API_SECRET: ${{ secrets.MAILJET_API_SECRET }}
+          SENDER_EMAIL: ${{ secrets.SENDER_EMAIL }}
+          DAILY_LIMIT: 10
+          DRY_RUN: false

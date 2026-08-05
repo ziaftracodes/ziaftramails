@@ -11,7 +11,7 @@ const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_KEY
 const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
 
 // You can change this search query to whatever niche you want to scrape today
-const SEARCH_QUERY = "digital marketing agencies in New York";
+const SEARCH_QUERY = "web development agencies in Australia";
 const GOOGLE_MAPS_URL = `https://www.google.com/maps/search/${encodeURIComponent(SEARCH_QUERY)}`;
 
 async function scrapeGoogleMaps() {
@@ -80,33 +80,35 @@ async function scrapeGoogleMaps() {
         const seenEmails = new Set();
 
         // Let's just do 5 for the test run so it doesn't take 20 minutes
-        for (let i = 0; i < Math.min(5, rawAgencies.length); i++) {
+        for (let i = 0; i < Math.min(10, rawAgencies.length); i++) {
             const agency = rawAgencies[i];
-            console.log(`\n🕵️ Investigating [${i+1}/5]: ${agency.name}`);
-            
+            console.log(`\n🕵️ Investigating [${i+1}/${Math.min(10, rawAgencies.length)}]: ${agency.name}`);
+            let agencyPage;
             try {
+                agencyPage = await browser.newPage();
                 // 1. Go to their specific Google Maps page to find their Website button
-                await page.goto(agency.mapsUrl, { waitUntil: 'domcontentloaded', timeout: 30000 });
+                await agencyPage.goto(agency.mapsUrl, { waitUntil: 'domcontentloaded', timeout: 30000 });
                 await new Promise(r => setTimeout(r, 2000)); // Let the sidebar load
 
                 // Google Maps often puts the website in an 'a' tag with data-item-id="authority"
-                const websiteUrl = await page.evaluate(() => {
+                const websiteUrl = await agencyPage.evaluate(() => {
                     const webBtn = document.querySelector('a[data-item-id="authority"]');
                     return webBtn ? webBtn.href : null;
                 });
 
                 if (!websiteUrl) {
                     console.log(`⚠️ No website listed on Google Maps for ${agency.name}. Skipping.`);
+                    if(agencyPage) await agencyPage.close();
                     continue;
                 }
                 
                 console.log(`🔗 Found Website: ${websiteUrl}`);
 
                 // 2. Go to their actual website to hunt for an email
-                await page.goto(websiteUrl, { waitUntil: 'domcontentloaded', timeout: 30000 });
+                await agencyPage.goto(websiteUrl, { waitUntil: 'domcontentloaded', timeout: 30000 });
                 
                 // Extract all text and HTML to hunt for emails
-                const siteHtml = await page.content();
+                const siteHtml = await agencyPage.content();
                 
                 // Regex to find standard emails
                 const emailRegex = /([a-zA-Z0-9._-]+@[a-zA-Z0-9._-]+\.[a-zA-Z0-9_-]+)/gi;
@@ -154,7 +156,6 @@ async function scrapeGoogleMaps() {
                             name: agency.name,
                             website: websiteUrl,
                             email: realEmail.toLowerCase(),
-                            ceo_name: ceoName,
                             personalized_intro: personalizedIntro,
                             status: 'PENDING',
                             source: 'Google Maps Scraper V2',
@@ -171,6 +172,10 @@ async function scrapeGoogleMaps() {
                 }
             } catch (err) {
                 console.log(`❌ Failed to scrape ${agency.name}: ${err.message}`);
+            } finally {
+                if (agencyPage && !agencyPage.isClosed()) {
+                    await agencyPage.close().catch(() => {});
+                }
             }
         }
 
