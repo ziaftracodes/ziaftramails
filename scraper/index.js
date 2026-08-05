@@ -111,7 +111,7 @@ async function runCloudScraper() {
 
         if (validAgencies.length > 0) {
             console.log(`\n💾 Injecting ${validAgencies.length} REAL leads into Supabase...`);
-            const { error } = await supabase.from('agencies').upsert(validAgencies, { onConflict: 'email' });
+            const { error } = await supabase.from('agencies').upsert(validAgencies, { onConflict: 'email', ignoreDuplicates: true });
             if (error) console.error("❌ Failed to push to database:", error);
             else console.log(`✅ Successfully added ${validAgencies.length} fresh leads!`);
         } else {
