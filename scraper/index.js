@@ -8,7 +8,7 @@ const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_KEY
 const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
 const SERPAPI_KEY = process.env.SERPAPI_KEY;
 
-const SEARCH_QUERY = "web development agencies in Australia";
+const SEARCH_QUERY = "digital marketing agencies in Sydney";
 
 async function runCloudScraper() {
     console.log(`🤖 Booting up Ziaftra Serverless API Scraper...`);
