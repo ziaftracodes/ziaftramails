@@ -1,13 +1,13 @@
 {
-  "name": "scraper",
-  "version": "1.0.0",
-  "description": "",
+  "name": "ziaftra-scraper",
+  "version": "4.0.0",
+  "description": "Serverless agency lead scraper powered by SerpApi & Groq AI",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "start": "node index.js",
+    "test": "echo \"No tests yet\" && exit 0"
   },
-  "keywords": [],
-  "author": "",
+  "author": "Fayz",
   "license": "ISC",
   "type": "commonjs",
   "dependencies": {
@@ -15,7 +15,6 @@
     "cheerio": "^1.2.0",
     "dotenv": "^17.4.2",
     "groq-sdk": "^1.5.0",
-    "puppeteer": "^25.4.0",
     "serpapi": "^2.2.1"
   }
 }

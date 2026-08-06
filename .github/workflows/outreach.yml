@@ -2,28 +2,29 @@ name: The Living Machine (Daily Pipeline)
 
 on:
   schedule:
-    # Runs every day at 10:00 AM UTC (around 3:30 PM IST)
+    # Runs every day at 10:00 AM UTC (3:30 PM IST)
     - cron: '0 10 * * *'
   workflow_dispatch:
 
 jobs:
-  execute-pipeline:
+  scrape-and-send:
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     steps:
-      - name: Checkout Repository
+      - name: 📦 Checkout Repository
         uses: actions/checkout@v4
 
-      - name: Setup Node.js
+      - name: 🟢 Setup Node.js 22
         uses: actions/setup-node@v4
         with:
           node-version: '22'
 
-      # -- SCRAPER PHASE --
-      - name: Install Scraper Dependencies
+      # ── SCRAPER PHASE ──
+      - name: 📥 Install Scraper Dependencies
         working-directory: ./scraper
-        run: npm install
+        run: npm ci --omit=dev || npm install --omit=dev
 
-      - name: Run Scraper
+      - name: 🤖 Run Scraper (Fresh Leads)
         working-directory: ./scraper
         run: node index.js
         env:
@@ -31,13 +32,14 @@ jobs:
           SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
           GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
           SERPAPI_KEY: ${{ secrets.SERPAPI_KEY }}
+          SCRAPE_LIMIT: 15
 
-      # -- SENDER PHASE --
-      - name: Install Sender Dependencies
+      # ── SENDER PHASE ──
+      - name: 📥 Install Sender Dependencies
         working-directory: ./sender
-        run: npm install
+        run: npm ci --omit=dev || npm install --omit=dev
 
-      - name: Run Sender (Blast Emails)
+      - name: 🚀 Run Sender (Blast Emails)
         working-directory: ./sender
         run: node index.js
         env:
@@ -48,5 +50,5 @@ jobs:
           MAILJET_API_KEY: ${{ secrets.MAILJET_API_KEY }}
           MAILJET_API_SECRET: ${{ secrets.MAILJET_API_SECRET }}
           SENDER_EMAIL: ${{ secrets.SENDER_EMAIL }}
-          DAILY_LIMIT: ${{ secrets.DAILY_LIMIT || 50 }}
+          DAILY_LIMIT: ${{ secrets.DAILY_LIMIT }}
           DRY_RUN: false

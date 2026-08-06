@@ -3,64 +3,133 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Ziaftra Mails - Command Center</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@500;700&display=swap" rel="stylesheet">
+    <title>Ziaftra Mails — Command Center</title>
+    <meta name="description" content="Ziaftra Mails Automated Outreach Command Center - Real-time monitoring dashboard">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <script src="https://unpkg.com/@phosphor-icons/web"></script>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
     <div class="container">
+        <!-- Header -->
         <header>
-            <h1>Ziaftra Mails</h1>
-            <p>Automated Outreach Command Center</p>
+            <div class="header-top">
+                <div>
+                    <h1>Ziaftra Mails</h1>
+                    <p class="subtitle">Automated Outreach Command Center</p>
+                </div>
+                <div class="header-actions">
+                    <span class="live-indicator" id="live-dot">
+                        <span class="pulse-dot"></span>
+                        <span id="live-text">Connecting...</span>
+                    </span>
+                </div>
+            </div>
         </header>
 
+        <!-- Metrics Grid -->
         <div class="metrics-grid">
-            <div class="metric-card">
-                <h3>Total Leads</h3>
-                <p id="metric-total">0</p>
+            <div class="metric-card" id="card-total">
+                <div class="metric-icon"><i class="ph ph-database"></i></div>
+                <div class="metric-content">
+                    <h3>Total Leads</h3>
+                    <p id="metric-total" class="metric-value">—</p>
+                </div>
             </div>
-            <div class="metric-card pending">
-                <h3>Pending</h3>
-                <p id="metric-pending">0</p>
+            <div class="metric-card" id="card-pending">
+                <div class="metric-icon"><i class="ph ph-hourglass"></i></div>
+                <div class="metric-content">
+                    <h3>Pending</h3>
+                    <p id="metric-pending" class="metric-value">—</p>
+                </div>
             </div>
-            <div class="metric-card sent">
-                <h3>Sent Emails</h3>
-                <p id="metric-sent">0</p>
+            <div class="metric-card" id="card-sent">
+                <div class="metric-icon"><i class="ph ph-paper-plane-tilt"></i></div>
+                <div class="metric-content">
+                    <h3>Emails Sent</h3>
+                    <p id="metric-sent" class="metric-value">—</p>
+                </div>
             </div>
-            <div class="metric-card replied">
-                <h3>Replies</h3>
-                <p id="metric-replied">0</p>
+            <div class="metric-card" id="card-replied">
+                <div class="metric-icon"><i class="ph ph-chat-circle-text"></i></div>
+                <div class="metric-content">
+                    <h3>Replies</h3>
+                    <p id="metric-replied" class="metric-value">—</p>
+                </div>
+            </div>
+            <div class="metric-card" id="card-rate">
+                <div class="metric-icon"><i class="ph ph-chart-line-up"></i></div>
+                <div class="metric-content">
+                    <h3>Success Rate</h3>
+                    <p id="metric-rate" class="metric-value">—</p>
+                </div>
+            </div>
+            <div class="metric-card" id="card-failed">
+                <div class="metric-icon"><i class="ph ph-warning-circle"></i></div>
+                <div class="metric-content">
+                    <h3>Failed / Invalid</h3>
+                    <p id="metric-failed" class="metric-value">—</p>
+                </div>
             </div>
         </div>
 
+        <!-- Filter Tabs -->
         <section class="data-section">
             <div class="section-header">
-                <h2>Agency Leads</h2>
-                <button id="refresh-btn">Refresh Data</button>
+                <h2>Agency Pipeline</h2>
+                <div class="header-controls">
+                    <div class="filter-tabs">
+                        <button class="filter-btn active" data-filter="all">All</button>
+                        <button class="filter-btn" data-filter="PENDING">Pending</button>
+                        <button class="filter-btn" data-filter="SENT">Sent</button>
+                        <button class="filter-btn" data-filter="REPLIED">Replied</button>
+                        <button class="filter-btn" data-filter="FAILED">Failed</button>
+                    </div>
+                    <button id="refresh-btn" class="refresh-btn">
+                        <i class="ph ph-arrows-clockwise"></i> Refresh
+                    </button>
+                </div>
             </div>
-            
+
+            <!-- Search -->
+            <div class="search-bar">
+                <i class="ph ph-magnifying-glass"></i>
+                <input type="text" id="search-input" placeholder="Search agencies, emails, or sources...">
+            </div>
+
+            <!-- Table -->
             <div class="table-container">
                 <table id="leads-table">
                     <thead>
                         <tr>
-                            <th>Agency Name</th>
+                            <th>Agency</th>
                             <th>Email</th>
+                            <th>Source</th>
                             <th>Status</th>
-                            <th>Added On</th>
+                            <th>Date</th>
                         </tr>
                     </thead>
                     <tbody id="leads-body">
                         <tr>
-                            <td colspan="4" class="empty-state">Loading data from Supabase...</td>
+                            <td colspan="5" class="empty-state">
+                                <i class="ph ph-spinner-gap spin empty-icon"></i>
+                                <p>Connecting to Supabase...</p>
+                            </td>
                         </tr>
                     </tbody>
                 </table>
             </div>
+
+            <!-- Pagination -->
+            <div class="pagination" id="pagination"></div>
         </section>
+
+        <!-- Footer -->
+        <footer>
+            <p>Handcrafted by <strong>Fayz</strong> — Powered by Supabase, SerpApi, & Groq AI</p>
+        </footer>
     </div>
 
-    <!-- Supabase JS Client via CDN -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="app.js"></script>
 </body>

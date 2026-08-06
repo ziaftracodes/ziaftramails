@@ -1,13 +1,13 @@
 {
-  "name": "sender",
-  "version": "1.0.0",
-  "description": "",
+  "name": "ziaftra-sender",
+  "version": "4.0.0",
+  "description": "Multi-provider email load balancer with smart warm-up",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "start": "node index.js",
+    "test": "echo \"No tests yet\" && exit 0"
   },
-  "keywords": [],
-  "author": "",
+  "author": "Fayz",
   "license": "ISC",
   "type": "commonjs",
   "dependencies": {

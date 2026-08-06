@@ -9,8 +9,36 @@ const resend = new Resend(process.env.RESEND_API_KEY);
 const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 const randomDelay = (min, max) => Math.floor(Math.random() * (max - min + 1) + min);
 
+// ═══════════════════════════════════════════════════════════════
+// 📧 SUBJECT LINE ROTATION — Different subjects = higher open rates
+// The system picks a random subject for each email so inbox
+// providers don't flag us as bulk spam.
+// ═══════════════════════════════════════════════════════════════
+function getSubjectLine(agencyName) {
+    const subjects = [
+        `Extra development capacity for ${agencyName}`,
+        `Overflow dev work — free trial for ${agencyName}`,
+        `Quick question for ${agencyName}'s team`,
+        `Partnership idea for ${agencyName}`,
+        `Full-stack dev available for ${agencyName} projects`,
+        `Free trial task for ${agencyName} — no strings attached`,
+    ];
+    return subjects[Math.floor(Math.random() * subjects.length)];
+}
+
+// ═══════════════════════════════════════════════════════════════
+// 🛡️ EMAIL VALIDATION — Don't waste sends on garbage addresses
+// ═══════════════════════════════════════════════════════════════
+function isValidEmail(email) {
+    if (!email || email.length < 6 || email.length > 254) return false;
+    const strictRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+    return strictRegex.test(email);
+}
+
+// ═══════════════════════════════════════════════════════════════
+// 🔥 WARM-UP ENGINE — Auto-scales sending volume over time
+// ═══════════════════════════════════════════════════════════════
 async function getDynamicLimit() {
-    // Check the database to see when we sent our VERY FIRST email
     const { data: firstSent, error } = await supabase
         .from('agencies')
         .select('last_contacted_at')
@@ -19,31 +47,46 @@ async function getDynamicLimit() {
         .limit(1);
 
     if (error) {
-        console.warn("⚠️ Could not check warmup history. Defaulting to safe limit of 50.");
+        console.warn("  ⚠️ Could not check warmup history. Defaulting to 50.");
         return 50;
     }
 
     if (!firstSent || firstSent.length === 0) {
-        console.log("🌱 First day of outreach! Starting Warm-up Phase 1.");
+        console.log("  🌱 First day of outreach! Warm-up Phase 1.");
         return 50;
     }
 
     const startDate = new Date(firstSent[0].last_contacted_at);
     const today = new Date();
-    const diffTime = Math.abs(today - startDate);
-    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+    const diffDays = Math.floor(Math.abs(today - startDate) / (1000 * 60 * 60 * 24));
 
-    console.log(`🔥 Warm-up Status: Day ${diffDays + 1} since first email.`);
+    const phases = [
+        { days: 7,  limit: 50,  label: 'Week 1 — Conservative' },
+        { days: 14, limit: 100, label: 'Week 2 — Ramping up' },
+        { days: 21, limit: 200, label: 'Week 3 — Getting warm' },
+        { days: 28, limit: 400, label: 'Week 4 — Almost there' },
+        { days: Infinity, limit: 600, label: 'Week 5+ — Full power' },
+    ];
 
-    if (diffDays < 7) return 50;        // Week 1: Very safe
-    if (diffDays < 14) return 100;      // Week 2: Ramping up
-    if (diffDays < 21) return 300;      // Week 3: Getting warm
-    if (diffDays < 28) return 500;      // Week 4: Almost there
-    return 700;                         // Week 5+: Fully unlocked (Max Free Tier)
+    const phase = phases.find(p => diffDays < p.days);
+    console.log(`  🔥 Day ${diffDays + 1} | ${phase.label} | Limit: ${phase.limit}`);
+    return phase.limit;
 }
 
-// Helper functions for providers
-async function sendViaBrevo(toEmail, toName, htmlContent) {
+// ═══════════════════════════════════════════════════════════════
+// 📡 PROVIDER FUNCTIONS — Multi-provider load balancer
+// ═══════════════════════════════════════════════════════════════
+async function sendViaResend(toEmail, toName, subject, htmlContent) {
+    const { error } = await resend.emails.send({
+        from: `Fayz <${process.env.SENDER_EMAIL}>`,
+        to: [toEmail],
+        subject: subject,
+        html: htmlContent,
+    });
+    if (error) throw new Error(error.message);
+}
+
+async function sendViaBrevo(toEmail, toName, subject, htmlContent) {
     const response = await fetch('https://api.brevo.com/v3/smtp/email', {
         method: 'POST',
         headers: {
@@ -54,17 +97,17 @@ async function sendViaBrevo(toEmail, toName, htmlContent) {
         body: JSON.stringify({
             sender: { name: 'Fayz', email: process.env.SENDER_EMAIL },
             to: [{ email: toEmail, name: toName }],
-            subject: `Extra development capacity for ${toName}`,
+            subject: subject,
             htmlContent: htmlContent
         })
     });
     if (!response.ok) {
         const err = await response.json();
-        throw new Error(`Brevo Error: ${JSON.stringify(err)}`);
+        throw new Error(`Brevo: ${JSON.stringify(err)}`);
     }
 }
 
-async function sendViaMailjet(toEmail, toName, htmlContent) {
+async function sendViaMailjet(toEmail, toName, subject, htmlContent) {
     const auth = Buffer.from(process.env.MAILJET_API_KEY + ':' + process.env.MAILJET_API_SECRET).toString('base64');
     const response = await fetch('https://api.mailjet.com/v3.1/send', {
         method: 'POST',
@@ -73,28 +116,58 @@ async function sendViaMailjet(toEmail, toName, htmlContent) {
             Messages: [{
                 From: { Email: process.env.SENDER_EMAIL, Name: 'Fayz' },
                 To: [{ Email: toEmail, Name: toName }],
-                Subject: `Extra development capacity for ${toName}`,
+                Subject: subject,
                 HTMLPart: htmlContent
             }]
         })
     });
     if (!response.ok) {
         const err = await response.json();
-        throw new Error(`Mailjet Error: ${JSON.stringify(err)}`);
+        throw new Error(`Mailjet: ${JSON.stringify(err)}`);
     }
 }
 
-// Removed Mailgun
+// ═══════════════════════════════════════════════════════════════
+// 📝 EMAIL TEMPLATE — Professional, clean HTML email
+// ═══════════════════════════════════════════════════════════════
+function buildEmailHtml(agency) {
+    return `
+<div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; font-size: 15px; color: #333; line-height: 1.7; max-width: 600px;">
+    <p>Hi team,</p>
+    <p>${agency.personalized_intro || ''}</p>
+    <p>I'm a full-stack developer (React, Next.js, Node.js) reaching out to see if <strong>${agency.name}</strong> ever works with external development partners during busy periods.</p>
+    <p>My entire focus is partnering with established digital agencies to handle their paid overflow and outsourcing work on a project or contract basis.</p>
+    <p>If your internal team ever gets overloaded or you need to offload web applications, API integrations, or frontend/backend implementation, I would love to be your go-to external partner.</p>
+    <p>I know it's risky to trust a new developer with your client work. That's why I'm happy to do a <strong>completely free, fixed-scope trial task</strong> — literally any kind of work you want to throw at me — just so you can evaluate my code quality and communication firsthand.</p>
+    <p>You can check out my portfolio here: <strong><a href="https://fayzz.in" style="color: #2563eb;">fayzz.in</a></strong></p>
+    <p>If you're open to an external partnership — or if you just want to test me out with a free task this week — I'd love to chat.</p>
+    <p style="margin-top: 24px;">
+        Best,<br>
+        <strong>Fayz</strong><br>
+        <span style="color: #666;">Full-Stack Developer</span><br>
+        <a href="https://fayzz.in" style="color: #2563eb;">fayzz.in</a>
+    </p>
+</div>`.trim();
+}
 
+// ═══════════════════════════════════════════════════════════════
+// 🚀 MAIN SENDER ENGINE
+// ═══════════════════════════════════════════════════════════════
 async function runSender() {
-    console.log('🚀 Starting Ziaftra Mails - Mega Load Balancer...');
+    const startTime = Date.now();
+    console.log(`\n${'═'.repeat(60)}`);
+    console.log(`  🚀 ZIAFTRA MAILS — MEGA LOAD BALANCER v4.0`);
+    console.log(`${'═'.repeat(60)}`);
+    console.log(`  📅 Date:   ${new Date().toISOString().split('T')[0]}`);
+    console.log(`  📧 From:   ${process.env.SENDER_EMAIL}`);
+    console.log(`  🏃 Mode:   ${process.env.DRY_RUN === 'true' ? 'DRY RUN' : 'LIVE'}`);
+    console.log(`${'═'.repeat(60)}\n`);
 
     try {
-        // Calculate dynamic limit based on warm up schedule (can be overridden by .env for emergency)
         const overrideLimit = parseInt(process.env.DAILY_LIMIT, 10);
         const DAILY_LIMIT = overrideLimit || await getDynamicLimit();
 
-        console.log(`\n🔍 Fetching up to ${DAILY_LIMIT} PENDING leads based on current Warm-up schedule...`);
+        console.log(`\n🔍 Fetching up to ${DAILY_LIMIT} PENDING leads...`);
         const { data: leads, error } = await supabase
             .from('agencies')
             .select('*')
@@ -107,87 +180,113 @@ async function runSender() {
             return;
         }
 
-        console.log(`🎯 Found ${leads.length} leads. Beginning sequence...`);
+        // Filter out invalid emails before sending
+        const validLeads = leads.filter(l => isValidEmail(l.email));
+        const invalidLeads = leads.filter(l => !isValidEmail(l.email));
 
-        let counts = { resend: 0, brevo: 0, mailjet: 0, mailgun: 0 };
-
-        for (const [index, agency] of leads.entries()) {
-            console.log(`\n📨 [${index + 1}/${leads.length}] Target: ${agency.name} (${agency.email})`);
-
-            const htmlContent = `
-                <p>Hi team,</p>
-                <p>${agency.personalized_intro || ''}</p>
-                <p>I'm a full-stack developer (React, Next.js, Node.js) reaching out to see if ${agency.name} ever works with external development partners during busy periods.</p>
-                <p>My entire focus is partnering with established digital agencies to handle their paid overflow and outsourcing work on a project or contract basis.</p>
-                <p>If your internal team ever gets overloaded or you need to offload web applications, API integrations, or frontend/backend implementation, I would love to be your go-to external partner.</p>
-                <p>I know it is risky to trust a new developer with your client work. That is why I am happy to do a completely free, fixed-scope trial task—<b>literally any kind of work you want to throw at me</b>—just so you can evaluate my code quality and communication firsthand.</p>
-                <p>You can check out my portfolio here: <b><a href="https://fayzz.in">https://fayzz.in</a></b></p>
-                <p>If you are open to an external partnership—or if you just want to test me out with a free task this week—I'd love to chat.</p>
-                <p>Best,<br>Fayz<br>Full-Stack Developer<br><a href="https://fayzz.in">fayzz.in</a></p>
-            `;
-
-            try {
-                // MEGA LOAD BALANCER
-                const isDryRun = process.env.DRY_RUN === 'true';
-
-                if (counts.resend < 100) {
-                    console.log(`📡 Routing via: RESEND (Usage: ${counts.resend + 1}/100)`);
-                    if (!isDryRun) {
-                        const { error: resendError } = await resend.emails.send({
-                            from: `Fayz <${process.env.SENDER_EMAIL}>`,
-                            to: [agency.email],
-                            subject: `Extra development capacity for ${agency.name}`,
-                            html: htmlContent,
-                        });
-                        if (resendError) throw new Error(resendError.message);
-                    } else { console.log(`[DRY RUN] Sent via Resend successfully.`); }
-                    counts.resend++;
-                } 
-                else if (counts.brevo < 300) {
-                    console.log(`📡 Routing via: BREVO (Usage: ${counts.brevo + 1}/300)`);
-                    if (!isDryRun) await sendViaBrevo(agency.email, agency.name, htmlContent);
-                    else console.log(`[DRY RUN] Sent via Brevo successfully.`);
-                    counts.brevo++;
-                } 
-                /*
-                else if (counts.mailjet < 200) {
-                    console.log(`📡 Routing via: MAILJET (Usage: ${counts.mailjet + 1}/200)`);
-                    if (!isDryRun) await sendViaMailjet(agency.email, agency.name, htmlContent);
-                    else console.log(`[DRY RUN] Sent via Mailjet successfully.`);
-                    counts.mailjet++;
-                } 
-                */
-                else {
-                    console.log(`🛑 Daily limits reached across ALL 2 active providers (Total 400). Stopping.`);
-                    break; 
-                }
-
-                // Update Database to SENT (Even in Dry Run so we can see the DB change)
+        if (invalidLeads.length > 0) {
+            console.log(`\n🗑️ Marking ${invalidLeads.length} invalid email(s) as INVALID:`);
+            for (const bad of invalidLeads) {
+                console.log(`   ❌ ${bad.email}`);
                 await supabase
                     .from('agencies')
-                    .update({ status: 'SENT', last_contacted_at: new Date().toISOString() })
-                    .eq('id', agency.id);
-
-                console.log(`✅ Success & Database updated -> Status: SENT`);
-
-            } catch (err) {
-                console.error(`❌ Failed to send to ${agency.email}:`, err.message);
-            }
-
-            // Humanize sending speed (Speed it up massively if it's a Dry Run)
-            if (index < leads.length - 1) {
-                const isDryRun = process.env.DRY_RUN === 'true';
-                const waitTimeMs = isDryRun ? 50 : randomDelay(60000, 180000); 
-                if(!isDryRun) console.log(`⏳ Humanizing delay... Waiting ${Math.round(waitTimeMs / 1000)}s`);
-                await sleep(waitTimeMs);
+                    .update({ status: 'INVALID' })
+                    .eq('id', bad.id);
             }
         }
 
-        const totalSent = counts.resend + counts.brevo + counts.mailjet + counts.mailgun;
-        console.log(`\n🎉 Daily outreach complete! Total sent today: ${totalSent}`);
+        if (validLeads.length === 0) {
+            console.log('✅ No valid pending leads to send.');
+            return;
+        }
+
+        console.log(`🎯 ${validLeads.length} valid leads queued. Beginning sequence...\n`);
+
+        // Provider capacity tracker
+        const providers = [
+            { name: 'RESEND',  fn: sendViaResend,  limit: 100, used: 0, enabled: !!process.env.RESEND_API_KEY },
+            { name: 'BREVO',   fn: sendViaBrevo,   limit: 300, used: 0, enabled: !!process.env.BREVO_API_KEY },
+            { name: 'MAILJET', fn: sendViaMailjet,  limit: 200, used: 0, enabled: !!(process.env.MAILJET_API_KEY && process.env.MAILJET_API_SECRET) },
+        ];
+
+        let totalSent = 0;
+        let totalFailed = 0;
+        const isDryRun = process.env.DRY_RUN === 'true';
+
+        for (const [index, agency] of validLeads.entries()) {
+            const label = `[${index + 1}/${validLeads.length}]`;
+            console.log(`${label} 📨 ${agency.name} → ${agency.email}`);
+
+            // Find the next available provider
+            const provider = providers.find(p => p.enabled && p.used < p.limit);
+            if (!provider) {
+                console.log(`\n🛑 ALL PROVIDERS EXHAUSTED. Stopping.`);
+                break;
+            }
+
+            const subject = getSubjectLine(agency.name);
+            const htmlContent = buildEmailHtml(agency);
+
+            try {
+                console.log(`${label} 📡 Via: ${provider.name} (${provider.used + 1}/${provider.limit})`);
+
+                if (!isDryRun) {
+                    await provider.fn(agency.email, agency.name, subject, htmlContent);
+                } else {
+                    console.log(`${label} [DRY RUN] Simulated send.`);
+                }
+                provider.used++;
+
+                // Update database
+                await supabase
+                    .from('agencies')
+                    .update({
+                        status: 'SENT',
+                        last_contacted_at: new Date().toISOString(),
+                    })
+                    .eq('id', agency.id);
+
+                console.log(`${label} ✅ SENT → DB updated`);
+                totalSent++;
+
+            } catch (err) {
+                console.error(`${label} ❌ FAILED: ${err.message}`);
+                totalFailed++;
+
+                // Mark as FAILED in DB so we don't retry it infinitely
+                await supabase
+                    .from('agencies')
+                    .update({ status: 'FAILED' })
+                    .eq('id', agency.id);
+            }
+
+            // Humanized delay between sends
+            if (index < validLeads.length - 1) {
+                const waitMs = isDryRun ? 50 : randomDelay(45000, 150000);
+                if (!isDryRun) {
+                    console.log(`${label} ⏳ Waiting ${Math.round(waitMs / 1000)}s...\n`);
+                }
+                await sleep(waitMs);
+            }
+        }
+
+        // ── Summary Report ──
+        const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
+        console.log(`\n${'═'.repeat(60)}`);
+        console.log(`  📋 SENDER REPORT`);
+        console.log(`${'═'.repeat(60)}`);
+        console.log(`  ✅ Sent:       ${totalSent}`);
+        console.log(`  ❌ Failed:     ${totalFailed}`);
+        console.log(`  🗑️  Invalid:    ${invalidLeads.length}`);
+        providers.filter(p => p.enabled).forEach(p => {
+            console.log(`  📡 ${p.name}: ${p.used}/${p.limit}`);
+        });
+        console.log(`  ⏱️  Duration:   ${elapsed}s`);
+        console.log(`${'═'.repeat(60)}\n`);
 
     } catch (err) {
-        console.error('❌ Fatal Error:', err.message);
+        console.error('❌ FATAL ERROR:', err.message);
+        process.exit(1);
     }
 }
 
