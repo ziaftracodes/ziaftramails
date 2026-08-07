@@ -33,7 +33,7 @@ const SEARCH_QUERIES = [
 
 // Pick today's query based on the day of the year (auto-rotates daily)
 const dayOfYear = Math.floor((Date.now() - new Date(new Date().getFullYear(), 0, 0)) / 86400000);
-const todaysQuery = SEARCH_QUERIES[dayOfYear % SEARCH_QUERIES.length];
+const todaysQuery = process.env.CATCHUP_QUERY || SEARCH_QUERIES[dayOfYear % SEARCH_QUERIES.length];
 
 // ═══════════════════════════════════════════════════════════════
 // 🛡️ EMAIL VALIDATION — Kill junk emails before they hit the DB

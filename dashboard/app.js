@@ -148,9 +148,19 @@ function renderTable() {
             'INVALID': 'x-circle',
         }[agency.status] || 'question';
 
-        const dateStr = agency.created_at
-            ? new Date(agency.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
-            : '—';
+        const formatTime = (isoString) => {
+            if (!isoString) return '—';
+            const date = new Date(isoString);
+            const now = new Date();
+            const diffHours = Math.floor(Math.abs(now - date) / 36e5);
+            if (diffHours < 24) {
+                return date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+            }
+            return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+        };
+
+        const scrapedAt = formatTime(agency.created_at);
+        const emailedAt = formatTime(agency.last_contacted_at);
 
         return `
         <tr>
@@ -168,7 +178,8 @@ function renderTable() {
                     ${agency.status}
                 </span>
             </td>
-            <td class="date-cell">${dateStr}</td>
+            <td class="date-cell" style="color: #64748b; font-size: 0.9em;">${scrapedAt}</td>
+            <td class="date-cell" style="color: #64748b; font-size: 0.9em;">${emailedAt}</td>
         </tr>`;
     }).join('');
 
