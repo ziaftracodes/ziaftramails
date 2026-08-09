@@ -14,10 +14,10 @@ const SERPAPI_KEY = process.env.SERPAPI_KEY;
 // This ensures fresh, diverse leads from different niches & cities.
 // ═══════════════════════════════════════════════════════════════
 const SEARCH_QUERIES = [
+    // Web Dev & Creative (Full-Stack Pitch)
     "web development agencies in New York NY",
     "web development agencies in Los Angeles CA",
     "web design companies in Chicago IL",
-    "digital marketing agencies in Austin TX",
     "web development companies in Miami FL",
     "software development agencies in Seattle WA",
     "ecommerce development agencies in San Francisco CA",
@@ -25,10 +25,21 @@ const SEARCH_QUERIES = [
     "Shopify development agencies in Boston MA",
     "mobile app development agencies in Atlanta GA",
     "UI UX design agencies in Portland OR",
-    "digital agencies in San Diego CA",
     "web design agencies in Dallas TX",
-    "IT consulting firms in Washington DC",
     "creative agencies in Brooklyn NY",
+    
+    // Marketing & Lead Gen (Landing Page Pitch)
+    "Performance marketing agencies in Chicago IL",
+    "Lead generation companies in Austin TX",
+    "Digital advertising agencies in Miami FL",
+    "B2B marketing firms in Seattle WA",
+    "PPC management agencies in Denver CO",
+    "Social media marketing agencies in San Diego CA",
+    "Performance marketing agencies in New York NY",
+    "Lead generation companies in Los Angeles CA",
+    "Digital advertising agencies in San Francisco CA",
+    "B2B marketing firms in Boston MA",
+    "PPC management agencies in Atlanta GA",
 ];
 
 // Pick today's query based on the day of the year (auto-rotates daily)

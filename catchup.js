@@ -1,31 +1,30 @@
 const { execSync } = require('child_process');
 
 const QUERIES = [
+    // Web Dev
     "web development agencies in London UK",
-    "digital marketing agencies in Manchester UK",
     "web design companies in Birmingham UK",
     "creative agencies in Edinburgh UK",
     "software development agencies in Glasgow UK",
-    "SEO agencies in Leeds UK",
     "web development companies in Bristol UK",
-    "digital agencies in Liverpool UK",
     "ecommerce development in Sheffield UK",
     "mobile app development in Newcastle UK",
     "UI UX design agencies in Nottingham UK",
     "WordPress development in Cardiff UK",
     "Shopify agencies in Belfast UK",
     "web design agencies in Brighton UK",
-    "IT consulting firms in Cambridge UK",
-    "digital marketing in Oxford UK",
-    "creative agencies in Southampton UK",
-    "web development in Leicester UK",
-    "SEO consultants in Coventry UK",
-    "software firms in Aberdeen UK",
-    "app developers in Swansea UK",
-    "branding agencies in Bath UK",
-    "ecommerce design in York UK",
-    "marketing firms in Reading UK",
-    "web design in Bournemouth UK"
+    
+    // Marketing
+    "Performance marketing agencies in Manchester UK",
+    "Digital advertising agencies in Liverpool UK",
+    "Lead generation companies in London UK",
+    "B2B marketing firms in Cambridge UK",
+    "PPC management agencies in Oxford UK",
+    "Performance marketing agencies in Southampton UK",
+    "Digital advertising agencies in Leicester UK",
+    "Lead generation companies in Coventry UK",
+    "PPC management agencies in Aberdeen UK",
+    "Social media marketing agencies in Swansea UK"
 ];
 
 const FIVE_HOURS = 5 * 60 * 60 * 1000;

@@ -107,7 +107,7 @@ function animateValue(element, target) {
 
 // ═══════════════ FILTERING & SEARCH ═══════════════
 function getFilteredAgencies() {
-    return allAgencies.filter(a => {
+    let filtered = allAgencies.filter(a => {
         // Filter
         if (currentFilter !== 'all' && a.status !== currentFilter) return false;
         // Search
@@ -118,6 +118,13 @@ function getFilteredAgencies() {
         }
         return true;
     });
+
+    // If viewing Sent or Replied, sort by when they were contacted instead of when they were scraped
+    if (currentFilter === 'SENT' || currentFilter === 'REPLIED') {
+        filtered.sort((a, b) => new Date(b.last_contacted_at || 0) - new Date(a.last_contacted_at || 0));
+    }
+
+    return filtered;
 }
 
 // ═══════════════ TABLE RENDERING ═══════════════

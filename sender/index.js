@@ -14,7 +14,7 @@ const randomDelay = (min, max) => Math.floor(Math.random() * (max - min + 1) + m
 // The system picks a random subject for each email so inbox
 // providers don't flag us as bulk spam.
 // ═══════════════════════════════════════════════════════════════
-function getSubjectLine(agencyName) {
+function getWebDevSubjectLine(agencyName) {
     const subjects = [
         `Extra development capacity for ${agencyName}`,
         `Overflow dev work — free trial for ${agencyName}`,
@@ -22,6 +22,17 @@ function getSubjectLine(agencyName) {
         `Partnership idea for ${agencyName}`,
         `Full-stack dev available for ${agencyName} projects`,
         `Free trial task for ${agencyName} — no strings attached`,
+    ];
+    return subjects[Math.floor(Math.random() * subjects.length)];
+}
+
+function getMarketingSubjectLine(agencyName) {
+    const subjects = [
+        `Landing page help for ${agencyName} campaigns`,
+        `Overflow landing page builds for ${agencyName}`,
+        `Free landing page trial for ${agencyName}`,
+        `Extra web dev hands for ${agencyName} campaigns`,
+        `Partnership idea for ${agencyName}`,
     ];
     return subjects[Math.floor(Math.random() * subjects.length)];
 }
@@ -46,31 +57,37 @@ async function getDynamicWarmupSettings() {
         .order('last_contacted_at', { ascending: true })
         .limit(1);
 
-    if (error) {
-        console.warn("  ⚠️ Could not check warmup history. Defaulting to Phase 1.");
-        return { limit: 50, minDelay: 60000, maxDelay: 150000 };
-    }
+    const START_LIMIT = 50;
+    const MAX_LIMIT = 600;
+    const START_MIN_DELAY = 60000;
+    const END_MIN_DELAY = 15000;
+    const START_MAX_DELAY = 150000;
+    const END_MAX_DELAY = 45000;
+    const WARMUP_DAYS = 30;
 
-    if (!firstSent || firstSent.length === 0) {
-        console.log("  🌱 First day of outreach! Warm-up Phase 1.");
-        return { limit: 50, minDelay: 60000, maxDelay: 150000 };
+    if (error || !firstSent || firstSent.length === 0) {
+        if (!error) console.log("  🌱 First day of outreach! Warm-up Day 1.");
+        else console.warn("  ⚠️ Could not check warmup history. Defaulting to Day 1.");
+        return { limit: START_LIMIT, minDelay: START_MIN_DELAY, maxDelay: START_MAX_DELAY };
     }
 
     const startDate = new Date(firstSent[0].last_contacted_at);
     const today = new Date();
     const diffDays = Math.floor(Math.abs(today - startDate) / (1000 * 60 * 60 * 24));
 
-    const phases = [
-        { days: 7,  limit: 50,  minDelay: 60000, maxDelay: 150000, label: 'Week 1 — Conservative' },
-        { days: 14, limit: 100, minDelay: 45000, maxDelay: 120000, label: 'Week 2 — Ramping up' },
-        { days: 21, limit: 200, minDelay: 30000, maxDelay: 90000,  label: 'Week 3 — Getting warm' },
-        { days: 28, limit: 400, minDelay: 20000, maxDelay: 60000,  label: 'Week 4 — Almost there' },
-        { days: Infinity, limit: 600, minDelay: 15000, maxDelay: 45000,  label: 'Week 5+ — Full power' },
-    ];
+    if (diffDays >= WARMUP_DAYS) {
+        console.log(`  🔥 Day ${diffDays + 1} | Fully Warmed Up! | Limit: ${MAX_LIMIT}`);
+        return { limit: MAX_LIMIT, minDelay: END_MIN_DELAY, maxDelay: END_MAX_DELAY };
+    }
 
-    const phase = phases.find(p => diffDays < p.days);
-    console.log(`  🔥 Day ${diffDays + 1} | ${phase.label} | Limit: ${phase.limit}`);
-    return phase;
+    // Linear interpolation for smooth daily scaling
+    const progress = diffDays / WARMUP_DAYS;
+    const currentLimit = Math.floor(START_LIMIT + (MAX_LIMIT - START_LIMIT) * progress);
+    const currentMinDelay = Math.floor(START_MIN_DELAY - (START_MIN_DELAY - END_MIN_DELAY) * progress);
+    const currentMaxDelay = Math.floor(START_MAX_DELAY - (START_MAX_DELAY - END_MAX_DELAY) * progress);
+
+    console.log(`  🔥 Day ${diffDays + 1} | Scaling Up | Limit: ${currentLimit}`);
+    return { limit: currentLimit, minDelay: currentMinDelay, maxDelay: currentMaxDelay };
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -130,7 +147,7 @@ async function sendViaMailjet(toEmail, toName, subject, htmlContent) {
 // ═══════════════════════════════════════════════════════════════
 // 📝 EMAIL TEMPLATE — Professional, clean HTML email
 // ═══════════════════════════════════════════════════════════════
-function buildEmailHtml(agency) {
+function buildWebDevEmailHtml(agency) {
     return `
 <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; font-size: 15px; color: #333; line-height: 1.7; max-width: 600px;">
     <p>Hi team,</p>
@@ -145,6 +162,26 @@ function buildEmailHtml(agency) {
         Best,<br>
         <strong>Fayz</strong><br>
         <span style="color: #666;">Full-Stack Developer</span><br>
+        <a href="https://fayzz.in" style="color: #2563eb;">fayzz.in</a>
+    </p>
+</div>`.trim();
+}
+
+function buildMarketingEmailHtml(agency) {
+    return `
+<div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; font-size: 15px; color: #333; line-height: 1.7; max-width: 600px;">
+    <p>Hi team,</p>
+    <p>${agency.personalized_intro || ''}</p>
+    <p>I'm a web developer specializing in fast-turnaround landing pages, and I'm reaching out to see if <strong>${agency.name}</strong> ever needs an extra set of hands during busy campaign periods.</p>
+    <p>My entire focus is helping digital advertising and lead-generation agencies handle their overflow by rapidly building clean, high-converting landing pages, marketing funnels, and simple promotional sites.</p>
+    <p>When your internal team gets bottlenecked launching new client campaigns, I can step in as a reliable external partner to just crank out the landing pages you need on time.</p>
+    <p>I know it's risky to trust a new developer with client work. That's why I'm happy to do a <strong>completely free, fixed-scope trial task</strong> — a free landing page build — just so you can evaluate my speed and quality firsthand.</p>
+    <p>You can check out my portfolio here: <strong><a href="https://fayzz.in" style="color: #2563eb;">fayzz.in</a></strong></p>
+    <p>If you're open to an external partnership for high-volume work — or if you just want to test me out with a free page this week — I'd love to chat.</p>
+    <p style="margin-top: 24px;">
+        Best,<br>
+        <strong>Fayz</strong><br>
+        <span style="color: #666;">Web Developer</span><br>
         <a href="https://fayzz.in" style="color: #2563eb;">fayzz.in</a>
     </p>
 </div>`.trim();
@@ -225,8 +262,15 @@ async function runSender() {
                 break;
             }
 
-            const subject = getSubjectLine(agency.name);
-            const htmlContent = buildEmailHtml(agency);
+            const sourceLower = (agency.source || "").toLowerCase();
+            const isMarketing = sourceLower.includes("marketing") || 
+                                sourceLower.includes("advertising") || 
+                                sourceLower.includes("lead generation") || 
+                                sourceLower.includes("ppc") ||
+                                sourceLower.includes("seo");
+                                
+            const subject = isMarketing ? getMarketingSubjectLine(agency.name) : getWebDevSubjectLine(agency.name);
+            const htmlContent = isMarketing ? buildMarketingEmailHtml(agency) : buildWebDevEmailHtml(agency);
 
             try {
                 console.log(`${label} 📡 Via: ${provider.name} (${provider.used + 1}/${provider.limit})`);
