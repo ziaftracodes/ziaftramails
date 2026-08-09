@@ -38,7 +38,7 @@ function isValidEmail(email) {
 // ═══════════════════════════════════════════════════════════════
 // 🔥 WARM-UP ENGINE — Auto-scales sending volume over time
 // ═══════════════════════════════════════════════════════════════
-async function getDynamicLimit() {
+async function getDynamicWarmupSettings() {
     const { data: firstSent, error } = await supabase
         .from('agencies')
         .select('last_contacted_at')
@@ -47,13 +47,13 @@ async function getDynamicLimit() {
         .limit(1);
 
     if (error) {
-        console.warn("  ⚠️ Could not check warmup history. Defaulting to 50.");
-        return 50;
+        console.warn("  ⚠️ Could not check warmup history. Defaulting to Phase 1.");
+        return { limit: 50, minDelay: 60000, maxDelay: 150000 };
     }
 
     if (!firstSent || firstSent.length === 0) {
         console.log("  🌱 First day of outreach! Warm-up Phase 1.");
-        return 50;
+        return { limit: 50, minDelay: 60000, maxDelay: 150000 };
     }
 
     const startDate = new Date(firstSent[0].last_contacted_at);
@@ -61,16 +61,16 @@ async function getDynamicLimit() {
     const diffDays = Math.floor(Math.abs(today - startDate) / (1000 * 60 * 60 * 24));
 
     const phases = [
-        { days: 7,  limit: 50,  label: 'Week 1 — Conservative' },
-        { days: 14, limit: 100, label: 'Week 2 — Ramping up' },
-        { days: 21, limit: 200, label: 'Week 3 — Getting warm' },
-        { days: 28, limit: 400, label: 'Week 4 — Almost there' },
-        { days: Infinity, limit: 600, label: 'Week 5+ — Full power' },
+        { days: 7,  limit: 50,  minDelay: 60000, maxDelay: 150000, label: 'Week 1 — Conservative' },
+        { days: 14, limit: 100, minDelay: 45000, maxDelay: 120000, label: 'Week 2 — Ramping up' },
+        { days: 21, limit: 200, minDelay: 30000, maxDelay: 90000,  label: 'Week 3 — Getting warm' },
+        { days: 28, limit: 400, minDelay: 20000, maxDelay: 60000,  label: 'Week 4 — Almost there' },
+        { days: Infinity, limit: 600, minDelay: 15000, maxDelay: 45000,  label: 'Week 5+ — Full power' },
     ];
 
     const phase = phases.find(p => diffDays < p.days);
     console.log(`  🔥 Day ${diffDays + 1} | ${phase.label} | Limit: ${phase.limit}`);
-    return phase.limit;
+    return phase;
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -165,7 +165,8 @@ async function runSender() {
 
     try {
         const overrideLimit = parseInt(process.env.DAILY_LIMIT, 10);
-        const DAILY_LIMIT = overrideLimit || await getDynamicLimit();
+        const warmupSettings = await getDynamicWarmupSettings();
+        const DAILY_LIMIT = overrideLimit || warmupSettings.limit;
 
         console.log(`\n🔍 Fetching up to ${DAILY_LIMIT} PENDING leads...`);
         const { data: leads, error } = await supabase
@@ -262,7 +263,7 @@ async function runSender() {
 
             // Humanized delay between sends
             if (index < validLeads.length - 1) {
-                const waitMs = isDryRun ? 50 : randomDelay(45000, 150000);
+                const waitMs = isDryRun ? 50 : randomDelay(warmupSettings.minDelay, warmupSettings.maxDelay);
                 if (!isDryRun) {
                     console.log(`${label} ⏳ Waiting ${Math.round(waitMs / 1000)}s...\n`);
                 }

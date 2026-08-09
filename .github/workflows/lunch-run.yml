@@ -23,7 +23,7 @@ on:
 jobs:
   scrape-and-send:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 480
     steps:
       - name: 📦 Checkout Repository
         uses: actions/checkout@v4
