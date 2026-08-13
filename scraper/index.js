@@ -190,16 +190,35 @@ async function runCloudScraper() {
 
     try {
         // ── PHASE 1: Query SerpApi ──
-        console.log(`\n⏳ Querying SerpApi (Google Maps engine)...`);
-        const json = await getJson({
-            engine: "google_maps",
-            q: todaysQuery,
-            type: "search",
-            api_key: SERPAPI_KEY,
-        });
+        console.log(`\n⏳ Querying SerpApi (Google Maps engine) with pagination...`);
+        let rawAgencies = [];
+        let startOffset = 0;
+        let maxPages = 3; // Limited to 3 pages (90 searches/month) to stay under SerpApi 100/mo free limit
 
-        const rawAgencies = json.local_results || [];
-        console.log(`✅ SerpApi returned ${rawAgencies.length} results\n`);
+        for (let page = 1; page <= maxPages; page++) {
+            console.log(`   📄 Fetching page ${page} (offset ${startOffset})...`);
+            const json = await getJson({
+                engine: "google_maps",
+                q: todaysQuery,
+                type: "search",
+                api_key: SERPAPI_KEY,
+                start: startOffset
+            });
+
+            const results = json.local_results || [];
+            if (results.length === 0) break;
+
+            rawAgencies.push(...results);
+            startOffset += 20;
+
+            // Stop if there are no more pages
+            if (results.length < 20) break;
+            
+            // Polite delay between API calls
+            await new Promise(r => setTimeout(r, 1000));
+        }
+
+        console.log(`✅ SerpApi returned a total of ${rawAgencies.length} results\n`);
 
         if (rawAgencies.length === 0) {
             console.log(`⚠️ Zero results. The query may be too specific. Exiting gracefully.`);
@@ -208,7 +227,7 @@ async function runCloudScraper() {
 
         // ── PHASE 2: Deep investigation ──
         const validAgencies = [];
-        const MAX_LEADS = parseInt(process.env.SCRAPE_LIMIT) || 15;
+        const MAX_LEADS = parseInt(process.env.SCRAPE_LIMIT) || 50; // Increased default to 50
         let investigated = 0;
         let emailsFound = 0;
         let skipped = 0;

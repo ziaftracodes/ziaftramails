@@ -351,13 +351,27 @@ function renderDailyStats() {
     const stats = {};
 
     allAgencies.forEach(agency => {
-        if (agency.status === 'SENT' || agency.status === 'REPLIED' || agency.status === 'FAILED') {
-            if (!agency.last_contacted_at) return;
+        // Scraped count based on created_at
+        if (agency.created_at) {
+            const dateObj = new Date(agency.created_at);
+            const dateStr = dateObj.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+            
+            if (!stats[dateStr]) {
+                // Set timestamp to midnight for sorting
+                const ts = new Date(dateStr).getTime();
+                stats[dateStr] = { scraped: 0, sent: 0, replied: 0, failed: 0, timestamp: ts };
+            }
+            stats[dateStr].scraped++;
+        }
+
+        // Action count based on last_contacted_at
+        if (agency.last_contacted_at && (agency.status === 'SENT' || agency.status === 'REPLIED' || agency.status === 'FAILED')) {
             const dateObj = new Date(agency.last_contacted_at);
             const dateStr = dateObj.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
             
             if (!stats[dateStr]) {
-                stats[dateStr] = { sent: 0, replied: 0, failed: 0, timestamp: dateObj.getTime() };
+                const ts = new Date(dateStr).getTime();
+                stats[dateStr] = { scraped: 0, sent: 0, replied: 0, failed: 0, timestamp: ts };
             }
             
             if (agency.status === 'SENT') stats[dateStr].sent++;
@@ -373,7 +387,7 @@ function renderDailyStats() {
     const tbody = document.getElementById('analytics-body');
     
     if (sortedDates.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="4" class="empty-state">No emails have been sent yet.</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="5" class="empty-state">No data available yet.</td></tr>`;
         return;
     }
 
@@ -382,6 +396,7 @@ function renderDailyStats() {
         return `
             <tr>
                 <td><strong>${date}</strong></td>
+                <td><span style="color: var(--amber); font-weight: 600;">${s.scraped}</span></td>
                 <td><span style="color: var(--blue); font-weight: 600;">${s.sent}</span></td>
                 <td><span style="color: var(--green); font-weight: 600;">${s.replied}</span></td>
                 <td><span style="color: var(--red); font-weight: 600;">${s.failed}</span></td>
@@ -417,42 +432,38 @@ function getMarketingSubjectLine(agencyName) {
 
 function buildWebDevEmailHtml(agency) {
     return `
-<div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; font-size: 15px; color: #333; line-height: 1.7; max-width: 600px;">
-    <p>Hi team,</p>
-    <p>${agency.personalized_intro || ''}</p>
-    <p>I'm a full-stack developer (React, Next.js, Node.js) reaching out to see if <strong>${agency.name}</strong> ever works with external development partners during busy periods.</p>
-    <p>My entire focus is partnering with established digital agencies to handle their paid overflow and outsourcing work on a project or contract basis.</p>
-    <p>If your internal team ever gets overloaded or you need to offload web applications, API integrations, or frontend/backend implementation, I would love to be your go-to external partner.</p>
-    <p>I know it's risky to trust a new developer with your client work. That's why I'm happy to do a <strong>completely free, fixed-scope trial task</strong> — literally any kind of work you want to throw at me — just so you can evaluate my code quality and communication firsthand.</p>
-    <p>You can check out my portfolio here: <strong><a href="https://fayzz.in" style="color: #2563eb;">fayzz.in</a></strong></p>
-    <p>If you're open to an external partnership — or if you just want to test me out with a free task this week — I'd love to chat.</p>
-    <p style="margin-top: 24px;">
-        Best,<br>
-        <strong>Fayz</strong><br>
-        <span style="color: #666;">Full-Stack Developer</span><br>
-        <a href="https://fayzz.in" style="color: #2563eb;">fayzz.in</a>
-    </p>
-</div>`.trim();
+<p>Hi team,</p>
+<p>${agency.personalized_intro || ''}</p>
+<p>I'm a full-stack developer (React, Next.js, Node.js) reaching out to see if ${agency.name} ever works with external development partners during busy periods.</p>
+<p>My entire focus is partnering with established digital agencies to handle their paid overflow and outsourcing work on a project or contract basis.</p>
+<p>If your internal team ever gets overloaded or you need to offload web applications, API integrations, or frontend/backend implementation, I would love to be your go-to external partner.</p>
+<p>I know it's risky to trust a new developer with your client work. That's why I'm happy to do a completely free, fixed-scope trial task — literally any kind of work you want to throw at me — just so you can evaluate my code quality and communication firsthand.</p>
+<p>You can check out my portfolio here: <a href="https://fayzz.in">fayzz.in</a></p>
+<p>If you're open to an external partnership — or if you just want to test me out with a free task this week — I'd love to chat.</p>
+<p>
+Best,<br>
+Fayz<br>
+Full-Stack Developer<br>
+<a href="https://fayzz.in">fayzz.in</a>
+</p>`.trim();
 }
 
 function buildMarketingEmailHtml(agency) {
     return `
-<div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; font-size: 15px; color: #333; line-height: 1.7; max-width: 600px;">
-    <p>Hi team,</p>
-    <p>${agency.personalized_intro || ''}</p>
-    <p>I'm a web developer specializing in fast-turnaround landing pages, and I'm reaching out to see if <strong>${agency.name}</strong> ever needs an extra set of hands during busy campaign periods.</p>
-    <p>My entire focus is helping digital advertising and lead-generation agencies handle their overflow by rapidly building clean, high-converting landing pages, marketing funnels, and simple promotional sites.</p>
-    <p>When your internal team gets bottlenecked launching new client campaigns, I can step in as a reliable external partner to just crank out the landing pages you need on time.</p>
-    <p>I know it's risky to trust a new developer with client work. That's why I'm happy to do a <strong>completely free, fixed-scope trial task</strong> — a free landing page build — just so you can evaluate my speed and quality firsthand.</p>
-    <p>You can check out my portfolio here: <strong><a href="https://fayzz.in" style="color: #2563eb;">fayzz.in</a></strong></p>
-    <p>If you're open to an external partnership for high-volume work — or if you just want to test me out with a free page this week — I'd love to chat.</p>
-    <p style="margin-top: 24px;">
-        Best,<br>
-        <strong>Fayz</strong><br>
-        <span style="color: #666;">Web Developer</span><br>
-        <a href="https://fayzz.in" style="color: #2563eb;">fayzz.in</a>
-    </p>
-</div>`.trim();
+<p>Hi team,</p>
+<p>${agency.personalized_intro || ''}</p>
+<p>I'm a web developer specializing in fast-turnaround landing pages, and I'm reaching out to see if ${agency.name} ever needs an extra set of hands during busy campaign periods.</p>
+<p>My entire focus is helping digital advertising and lead-generation agencies handle their overflow by rapidly building clean, high-converting landing pages, marketing funnels, and simple promotional sites.</p>
+<p>When your internal team gets bottlenecked launching new client campaigns, I can step in as a reliable external partner to just crank out the landing pages you need on time.</p>
+<p>I know it's risky to trust a new developer with client work. That's why I'm happy to do a completely free, fixed-scope trial task — a free landing page build — just so you can evaluate my speed and quality firsthand.</p>
+<p>You can check out my portfolio here: <a href="https://fayzz.in">fayzz.in</a></p>
+<p>If you're open to an external partnership for high-volume work — or if you just want to test me out with a free page this week — I'd love to chat.</p>
+<p>
+Best,<br>
+Fayz<br>
+Web Developer<br>
+<a href="https://fayzz.in">fayzz.in</a>
+</p>`.trim();
 }
 
 window.previewEmail = function(agencyId) {
