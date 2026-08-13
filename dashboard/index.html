@@ -73,6 +73,21 @@
             </div>
         </div>
 
+        <!-- View Toggles -->
+        <div class="view-toggles">
+            <button class="view-btn active" data-view="pipeline">
+                <i class="ph ph-funnel"></i> Pipeline
+            </button>
+            <button class="view-btn" data-view="analytics">
+                <i class="ph ph-chart-bar"></i> Daily Analytics
+            </button>
+            <button class="view-btn" data-view="feed">
+                <i class="ph ph-list"></i> Scrollable Feed
+            </button>
+        </div>
+
+        <!-- Pipeline View -->
+        <div id="view-pipeline" class="view-section active">
         <!-- Filter Tabs -->
         <section class="data-section">
             <div class="section-header">
@@ -108,11 +123,12 @@
                             <th>Status</th>
                             <th>Scraped At</th>
                             <th>Emailed At</th>
+                            <th>Action</th>
                         </tr>
                     </thead>
                     <tbody id="leads-body">
                         <tr>
-                            <td colspan="5" class="empty-state">
+                            <td colspan="7" class="empty-state">
                                 <i class="ph ph-spinner-gap spin empty-icon"></i>
                                 <p>Connecting to Supabase...</p>
                             </td>
@@ -124,11 +140,67 @@
             <!-- Pagination -->
             <div class="pagination" id="pagination"></div>
         </section>
+        </div>
+
+        <!-- Analytics View -->
+        <div id="view-analytics" class="view-section" style="display: none;">
+            <section class="data-section">
+                <div class="section-header">
+                    <h2>Daily Outbound Analytics</h2>
+                </div>
+                <div class="table-container">
+                    <table id="analytics-table">
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th>Emails Sent</th>
+                                <th>Replies (Same Day)</th>
+                                <th>Failed</th>
+                            </tr>
+                        </thead>
+                        <tbody id="analytics-body">
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+        </div>
+
+        <!-- Feed View -->
+        <div id="view-feed" class="view-section" style="display: none;">
+            <section class="data-section">
+                <div class="section-header">
+                    <h2><i class="ph ph-list"></i> Email Feed</h2>
+                </div>
+                <div id="feed-container" class="feed-container">
+                    <div class="empty-state">
+                        <i class="ph ph-spinner-gap spin empty-icon"></i>
+                        <p>Loading emails...</p>
+                    </div>
+                </div>
+            </section>
+        </div>
 
         <!-- Footer -->
         <footer>
             <p>Handcrafted by <strong>Fayz</strong> — Powered by Supabase, SerpApi, & Groq AI</p>
         </footer>
+    </div>
+
+    <!-- Email Viewer Modal -->
+    <div id="email-modal" class="modal-overlay">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2><i class="ph ph-envelope-open"></i> Email Preview</h2>
+                <button class="modal-close" id="close-modal"><i class="ph ph-x"></i></button>
+            </div>
+            <div class="modal-body">
+                <div class="email-meta">
+                    <div class="meta-row"><strong>To:</strong> <span id="modal-to"></span></div>
+                    <div class="meta-row"><strong>Subject:</strong> <span id="modal-subject"></span></div>
+                </div>
+                <div class="email-html" id="modal-html"></div>
+            </div>
+        </div>
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>

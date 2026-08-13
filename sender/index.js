@@ -72,7 +72,9 @@ async function getDynamicWarmupSettings() {
     }
 
     const startDate = new Date(firstSent[0].last_contacted_at);
+    startDate.setUTCHours(0, 0, 0, 0);
     const today = new Date();
+    today.setUTCHours(0, 0, 0, 0);
     const diffDays = Math.floor(Math.abs(today - startDate) / (1000 * 60 * 60 * 24));
 
     if (diffDays >= WARMUP_DAYS) {
@@ -288,6 +290,7 @@ async function runSender() {
                     .update({
                         status: 'SENT',
                         last_contacted_at: new Date().toISOString(),
+                        provider: provider.name
                     })
                     .eq('id', agency.id);
 

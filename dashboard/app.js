@@ -52,6 +52,8 @@ async function fetchData() {
 
         updateMetrics();
         renderTable();
+        renderDailyStats();
+        renderFeed();
 
     } catch (err) {
         console.error('Fetch error:', err);
@@ -187,6 +189,11 @@ function renderTable() {
             </td>
             <td class="date-cell" style="color: #64748b; font-size: 0.9em;">${scrapedAt}</td>
             <td class="date-cell" style="color: #64748b; font-size: 0.9em;">${emailedAt}</td>
+            <td>
+                <button class="btn-preview" onclick="previewEmail('${agency.id}')">
+                    <i class="ph ph-eye"></i> Preview
+                </button>
+            </td>
         </tr>`;
     }).join('');
 
@@ -269,3 +276,210 @@ document.addEventListener('DOMContentLoaded', fetchData);
 
 // Make goToPage globally accessible for inline onclick
 window.goToPage = goToPage;
+
+// ═══════════════ VIEW TOGGLES ═══════════════
+document.querySelectorAll('.view-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+        document.querySelectorAll('.view-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        
+        const view = btn.dataset.view;
+        document.getElementById('view-pipeline').style.display = 'none';
+        document.getElementById('view-analytics').style.display = 'none';
+        document.getElementById('view-feed').style.display = 'none';
+        
+        document.getElementById('view-' + view).style.display = 'block';
+    });
+});
+
+// ═══════════════ SCROLLABLE FEED ═══════════════
+function renderFeed() {
+    const feedContainer = document.getElementById('feed-container');
+    
+    // Get sent/replied agencies, sorted by most recently contacted
+    const feedAgencies = allAgencies
+        .filter(a => a.status === 'SENT' || a.status === 'REPLIED')
+        .sort((a, b) => new Date(b.last_contacted_at || 0) - new Date(a.last_contacted_at || 0))
+        .slice(0, 100); // Limit to 100 to prevent performance issues
+
+    if (feedAgencies.length === 0) {
+        feedContainer.innerHTML = `
+            <div class="empty-state">
+                <i class="ph ph-ghost empty-icon"></i>
+                <p>No emails have been sent yet.</p>
+            </div>`;
+        return;
+    }
+
+    feedContainer.innerHTML = feedAgencies.map(agency => {
+        const isMarketing = (agency.source || '').toLowerCase().includes('marketing');
+        const subject = isMarketing ? getMarketingSubjectLine(agency.name) : getWebDevSubjectLine(agency.name);
+        
+        const dateStr = new Date(agency.last_contacted_at).toLocaleString('en-US', {
+            month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit'
+        });
+
+        // The exact provider isn't saved in the DB, so we indicate it's from the Load Balancer
+        // We can add a feature to save the provider for future emails.
+        const providerName = agency.provider || "Resend/Brevo (Load Balancer)";
+
+        return `
+            <div class="feed-card" style="cursor: pointer; position: relative;" onclick="previewEmail('${agency.id}')">
+                <div class="feed-header" style="padding: 0.8rem 1.2rem;">
+                    <div class="feed-header-left">
+                        <div class="feed-avatar" style="width: 32px; height: 32px; font-size: 1rem;"><i class="ph ph-buildings"></i></div>
+                        <div class="feed-info">
+                            <strong>${escapeHtml(agency.name)}</strong>
+                            <span style="font-size: 0.75rem;">${escapeHtml(agency.email)}</span>
+                        </div>
+                    </div>
+                    <div class="feed-date" style="text-align: right;">
+                        <div>${dateStr}</div>
+                        <div style="font-size: 0.7rem; color: var(--accent); margin-top: 2px;">⚡ ${providerName}</div>
+                    </div>
+                </div>
+                <div class="feed-subject" style="padding: 0.8rem 1.2rem; border-bottom: none; font-size: 0.95rem; font-weight: 400; color: var(--text-secondary);">
+                    <strong style="color: var(--text-primary);">Subject:</strong> ${subject}
+                </div>
+            </div>
+        `;
+    }).join('');
+}
+
+// ═══════════════ DAILY ANALYTICS ═══════════════
+function renderDailyStats() {
+    const stats = {};
+
+    allAgencies.forEach(agency => {
+        if (agency.status === 'SENT' || agency.status === 'REPLIED' || agency.status === 'FAILED') {
+            if (!agency.last_contacted_at) return;
+            const dateObj = new Date(agency.last_contacted_at);
+            const dateStr = dateObj.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+            
+            if (!stats[dateStr]) {
+                stats[dateStr] = { sent: 0, replied: 0, failed: 0, timestamp: dateObj.getTime() };
+            }
+            
+            if (agency.status === 'SENT') stats[dateStr].sent++;
+            if (agency.status === 'REPLIED') {
+                stats[dateStr].sent++; // Replied implies it was sent
+                stats[dateStr].replied++;
+            }
+            if (agency.status === 'FAILED') stats[dateStr].failed++;
+        }
+    });
+
+    const sortedDates = Object.keys(stats).sort((a, b) => stats[b].timestamp - stats[a].timestamp);
+    const tbody = document.getElementById('analytics-body');
+    
+    if (sortedDates.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="4" class="empty-state">No emails have been sent yet.</td></tr>`;
+        return;
+    }
+
+    tbody.innerHTML = sortedDates.map(date => {
+        const s = stats[date];
+        return `
+            <tr>
+                <td><strong>${date}</strong></td>
+                <td><span style="color: var(--blue); font-weight: 600;">${s.sent}</span></td>
+                <td><span style="color: var(--green); font-weight: 600;">${s.replied}</span></td>
+                <td><span style="color: var(--red); font-weight: 600;">${s.failed}</span></td>
+            </tr>
+        `;
+    }).join('');
+}
+
+// ═══════════════ EMAIL PREVIEW MODAL ═══════════════
+
+function getWebDevSubjectLine(agencyName) {
+    const subjects = [
+        `Extra development capacity for ${agencyName}`,
+        `Overflow dev work — free trial for ${agencyName}`,
+        `Quick question for ${agencyName}'s team`,
+        `Partnership idea for ${agencyName}`,
+        `Full-stack dev available for ${agencyName} projects`,
+        `Free trial task for ${agencyName} — no strings attached`,
+    ];
+    return subjects[Math.floor(Math.random() * subjects.length)];
+}
+
+function getMarketingSubjectLine(agencyName) {
+    const subjects = [
+        `Landing page help for ${agencyName} campaigns`,
+        `Overflow landing page builds for ${agencyName}`,
+        `Free landing page trial for ${agencyName}`,
+        `Extra web dev hands for ${agencyName} campaigns`,
+        `Partnership idea for ${agencyName}`,
+    ];
+    return subjects[Math.floor(Math.random() * subjects.length)];
+}
+
+function buildWebDevEmailHtml(agency) {
+    return `
+<div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; font-size: 15px; color: #333; line-height: 1.7; max-width: 600px;">
+    <p>Hi team,</p>
+    <p>${agency.personalized_intro || ''}</p>
+    <p>I'm a full-stack developer (React, Next.js, Node.js) reaching out to see if <strong>${agency.name}</strong> ever works with external development partners during busy periods.</p>
+    <p>My entire focus is partnering with established digital agencies to handle their paid overflow and outsourcing work on a project or contract basis.</p>
+    <p>If your internal team ever gets overloaded or you need to offload web applications, API integrations, or frontend/backend implementation, I would love to be your go-to external partner.</p>
+    <p>I know it's risky to trust a new developer with your client work. That's why I'm happy to do a <strong>completely free, fixed-scope trial task</strong> — literally any kind of work you want to throw at me — just so you can evaluate my code quality and communication firsthand.</p>
+    <p>You can check out my portfolio here: <strong><a href="https://fayzz.in" style="color: #2563eb;">fayzz.in</a></strong></p>
+    <p>If you're open to an external partnership — or if you just want to test me out with a free task this week — I'd love to chat.</p>
+    <p style="margin-top: 24px;">
+        Best,<br>
+        <strong>Fayz</strong><br>
+        <span style="color: #666;">Full-Stack Developer</span><br>
+        <a href="https://fayzz.in" style="color: #2563eb;">fayzz.in</a>
+    </p>
+</div>`.trim();
+}
+
+function buildMarketingEmailHtml(agency) {
+    return `
+<div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; font-size: 15px; color: #333; line-height: 1.7; max-width: 600px;">
+    <p>Hi team,</p>
+    <p>${agency.personalized_intro || ''}</p>
+    <p>I'm a web developer specializing in fast-turnaround landing pages, and I'm reaching out to see if <strong>${agency.name}</strong> ever needs an extra set of hands during busy campaign periods.</p>
+    <p>My entire focus is helping digital advertising and lead-generation agencies handle their overflow by rapidly building clean, high-converting landing pages, marketing funnels, and simple promotional sites.</p>
+    <p>When your internal team gets bottlenecked launching new client campaigns, I can step in as a reliable external partner to just crank out the landing pages you need on time.</p>
+    <p>I know it's risky to trust a new developer with client work. That's why I'm happy to do a <strong>completely free, fixed-scope trial task</strong> — a free landing page build — just so you can evaluate my speed and quality firsthand.</p>
+    <p>You can check out my portfolio here: <strong><a href="https://fayzz.in" style="color: #2563eb;">fayzz.in</a></strong></p>
+    <p>If you're open to an external partnership for high-volume work — or if you just want to test me out with a free page this week — I'd love to chat.</p>
+    <p style="margin-top: 24px;">
+        Best,<br>
+        <strong>Fayz</strong><br>
+        <span style="color: #666;">Web Developer</span><br>
+        <a href="https://fayzz.in" style="color: #2563eb;">fayzz.in</a>
+    </p>
+</div>`.trim();
+}
+
+window.previewEmail = function(agencyId) {
+    const agency = allAgencies.find(a => a.id === agencyId);
+    if (!agency) return;
+
+    // Detect if marketing or web dev based on source keyword
+    const isMarketing = (agency.source || '').toLowerCase().includes('marketing');
+    
+    // NOTE: This shows a generated subject line since the real one isn't stored in the DB
+    const subject = isMarketing ? getMarketingSubjectLine(agency.name) : getWebDevSubjectLine(agency.name);
+    const htmlBody = isMarketing ? buildMarketingEmailHtml(agency) : buildWebDevEmailHtml(agency);
+
+    document.getElementById('modal-to').textContent = agency.email;
+    document.getElementById('modal-subject').textContent = subject + ' (Note: Randomly selected sample)';
+    document.getElementById('modal-html').innerHTML = htmlBody;
+    
+    document.getElementById('email-modal').classList.add('show');
+};
+
+document.getElementById('close-modal').addEventListener('click', () => {
+    document.getElementById('email-modal').classList.remove('show');
+});
+
+// Close modal on click outside
+document.getElementById('email-modal').addEventListener('click', (e) => {
+    if (e.target.id === 'email-modal') {
+        document.getElementById('email-modal').classList.remove('show');
+    }
+});
