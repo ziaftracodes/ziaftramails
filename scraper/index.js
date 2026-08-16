@@ -2,11 +2,11 @@ require('dotenv').config({ path: '../sender/.env' });
 const cheerio = require('cheerio');
 const { createClient } = require('@supabase/supabase-js');
 const Groq = require('groq-sdk');
-const { getJson } = require("serpapi");
+// Serper.dev — Google Maps/Places search via simple fetch (no SDK needed)
 
 const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_KEY);
 const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
-const SERPAPI_KEY = process.env.SERPAPI_KEY;
+const SERPER_API_KEY = process.env.SERPER_API_KEY;
 
 // ═══════════════════════════════════════════════════════════════
 // 🔄 ROTATING SEARCH QUERIES — Never scrape the same thing twice
@@ -177,8 +177,8 @@ async function runCloudScraper() {
     console.log(`  🔄 Rotation: Day ${dayOfYear} → Query #${(dayOfYear % SEARCH_QUERIES.length) + 1}/${SEARCH_QUERIES.length}`);
     console.log(`${'═'.repeat(60)}\n`);
 
-    if (!SERPAPI_KEY) {
-        console.error("❌ FATAL: SERPAPI_KEY is missing!");
+    if (!SERPER_API_KEY) {
+        console.error("❌ FATAL: SERPER_API_KEY is missing!");
         process.exit(1);
     }
 
@@ -189,36 +189,44 @@ async function runCloudScraper() {
     console.log(`📊 Existing leads in DB: ${existingCount || 0}`);
 
     try {
-        // ── PHASE 1: Query SerpApi ──
-        console.log(`\n⏳ Querying SerpApi (Google Maps engine) with pagination...`);
+        // ── PHASE 1: Query Serper.dev (Google Maps/Places) ──
+        console.log(`\n⏳ Querying Serper.dev (Google Places engine) with pagination...`);
         let rawAgencies = [];
-        let startOffset = 0;
-        let maxPages = 3; // Limited to 3 pages (90 searches/month) to stay under SerpApi 100/mo free limit
+        let maxPages = 3; // 3 pages of results per query
 
         for (let page = 1; page <= maxPages; page++) {
-            console.log(`   📄 Fetching page ${page} (offset ${startOffset})...`);
-            const json = await getJson({
-                engine: "google_maps",
-                q: todaysQuery,
-                type: "search",
-                api_key: SERPAPI_KEY,
-                start: startOffset
+            console.log(`   📄 Fetching page ${page}...`);
+            const response = await fetch('https://google.serper.dev/places', {
+                method: 'POST',
+                headers: {
+                    'X-API-KEY': SERPER_API_KEY,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    q: todaysQuery,
+                    page: page
+                })
             });
 
-            const results = json.local_results || [];
+            if (!response.ok) {
+                const errText = await response.text();
+                throw new Error(`Serper API ${response.status}: ${errText}`);
+            }
+
+            const json = await response.json();
+            const results = json.places || [];
             if (results.length === 0) break;
 
             rawAgencies.push(...results);
-            startOffset += 20;
 
             // Stop if there are no more pages
-            if (results.length < 20) break;
+            if (results.length < 10) break;
             
             // Polite delay between API calls
             await new Promise(r => setTimeout(r, 1000));
         }
 
-        console.log(`✅ SerpApi returned a total of ${rawAgencies.length} results\n`);
+        console.log(`✅ Serper.dev returned a total of ${rawAgencies.length} results\n`);
 
         if (rawAgencies.length === 0) {
             console.log(`⚠️ Zero results. The query may be too specific. Exiting gracefully.`);
@@ -309,7 +317,7 @@ async function runCloudScraper() {
                     email: bestEmail,
                     personalized_intro: personalizedIntro,
                     status: 'PENDING',
-                    source: `SerpApi v4 | ${todaysQuery}`,
+                    source: `Serper v1 | ${todaysQuery}`,
                     created_at: new Date().toISOString(),
                 });
 

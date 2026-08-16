@@ -1,7 +1,7 @@
 {
   "name": "ziaftra-scraper",
   "version": "4.0.0",
-  "description": "Serverless agency lead scraper powered by SerpApi & Groq AI",
+  "description": "Serverless agency lead scraper powered by Serper.dev & Groq AI",
   "main": "index.js",
   "scripts": {
     "start": "node index.js",
@@ -14,7 +14,6 @@
     "@supabase/supabase-js": "^2.112.0",
     "cheerio": "^1.2.0",
     "dotenv": "^17.4.2",
-    "groq-sdk": "^1.5.0",
-    "serpapi": "^2.2.1"
+    "groq-sdk": "^1.5.0"
   }
 }
