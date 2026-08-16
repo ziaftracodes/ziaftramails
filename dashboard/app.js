@@ -313,7 +313,9 @@ function renderFeed() {
 
     feedContainer.innerHTML = feedAgencies.map(agency => {
         const isMarketing = (agency.source || '').toLowerCase().includes('marketing');
-        const subject = isMarketing ? getMarketingSubjectLine(agency.name) : getWebDevSubjectLine(agency.name);
+        
+        // Use the saved subject if it exists (for all future emails), otherwise fallback to generating a sample one
+        const subject = agency.subject || (isMarketing ? getMarketingSubjectLine(agency.name) : getWebDevSubjectLine(agency.name));
         
         const dateStr = new Date(agency.last_contacted_at).toLocaleString('en-US', {
             month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit'
@@ -473,12 +475,15 @@ window.previewEmail = function(agencyId) {
     // Detect if marketing or web dev based on source keyword
     const isMarketing = (agency.source || '').toLowerCase().includes('marketing');
     
-    // NOTE: This shows a generated subject line since the real one isn't stored in the DB
-    const subject = isMarketing ? getMarketingSubjectLine(agency.name) : getWebDevSubjectLine(agency.name);
+    // Use the saved subject if available, otherwise generate a sample
+    const subject = agency.subject || (isMarketing ? getMarketingSubjectLine(agency.name) : getWebDevSubjectLine(agency.name));
     const htmlBody = isMarketing ? buildMarketingEmailHtml(agency) : buildWebDevEmailHtml(agency);
 
     document.getElementById('modal-to').textContent = agency.email;
-    document.getElementById('modal-subject').textContent = subject + ' (Note: Randomly selected sample)';
+    
+    // If the subject was a generated sample (because it wasn't saved in the DB originally), we let the user know
+    const note = agency.subject ? '' : ' (Sample)';
+    document.getElementById('modal-subject').textContent = subject + note;
     document.getElementById('modal-html').innerHTML = htmlBody;
     
     document.getElementById('email-modal').classList.add('show');

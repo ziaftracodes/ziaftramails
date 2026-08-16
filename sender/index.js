@@ -286,7 +286,8 @@ async function runSender() {
                     .update({
                         status: 'SENT',
                         last_contacted_at: new Date().toISOString(),
-                        provider: provider.name
+                        provider: provider.name,
+                        subject: subject
                     })
                     .eq('id', agency.id);
 
