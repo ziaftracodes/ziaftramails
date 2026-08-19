@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ziaftra Mails — Command Center</title>
+    <meta name="description" content="Ziaftra Mails Automated Outreach Command Center - Real-time monitoring dashboard">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <header>
+            <div class="header-top">
+                <div>
+                    <h1>Ziaftra Mails</h1>
+                    <p class="subtitle">Automated Outreach Command Center</p>
+                </div>
+                <div class="header-actions">
+                    <span class="live-indicator" id="live-dot">
+                        <span class="pulse-dot"></span>
+                        <span id="live-text">Connecting...</span>
+                    </span>
+                </div>
+            </div>
+        </header>
+
+        <!-- Metrics Grid -->
+        <div class="metrics-grid">
+            <div class="metric-card" id="card-total">
+                <div class="metric-icon"><i class="ph ph-database"></i></div>
+                <div class="metric-content">
+                    <h3>Total Leads</h3>
+                    <p id="metric-total" class="metric-value">—</p>
+                </div>
+            </div>
+            <div class="metric-card" id="card-pending">
+                <div class="metric-icon"><i class="ph ph-hourglass"></i></div>
+                <div class="metric-content">
+                    <h3>Pending</h3>
+                    <p id="metric-pending" class="metric-value">—</p>
+                </div>
+            </div>
+            <div class="metric-card" id="card-sent">
+                <div class="metric-icon"><i class="ph ph-paper-plane-tilt"></i></div>
+                <div class="metric-content">
+                    <h3>Emails Sent</h3>
+                    <p id="metric-sent" class="metric-value">—</p>
+                </div>
+            </div>
+            <div class="metric-card" id="card-replied">
+                <div class="metric-icon"><i class="ph ph-chat-circle-text"></i></div>
+                <div class="metric-content">
+                    <h3>Replies</h3>
+                    <p id="metric-replied" class="metric-value">—</p>
+                </div>
+            </div>
+            <div class="metric-card" id="card-rate">
+                <div class="metric-icon"><i class="ph ph-chart-line-up"></i></div>
+                <div class="metric-content">
+                    <h3>Success Rate</h3>
+                    <p id="metric-rate" class="metric-value">—</p>
+                </div>
+            </div>
+            <div class="metric-card" id="card-failed">
+                <div class="metric-icon"><i class="ph ph-warning-circle"></i></div>
+                <div class="metric-content">
+                    <h3>Failed / Invalid</h3>
+                    <p id="metric-failed" class="metric-value">—</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- View Toggles -->
+        <div class="view-toggles">
+            <button class="view-btn active" data-view="pipeline">
+                <i class="ph ph-funnel"></i> Pipeline
+            </button>
+            <button class="view-btn" data-view="analytics">
+                <i class="ph ph-chart-bar"></i> Daily Analytics
+            </button>
+            <button class="view-btn" data-view="feed">
+                <i class="ph ph-list"></i> Scrollable Feed
+            </button>
+        </div>
+
+        <!-- Pipeline View -->
+        <div id="view-pipeline" class="view-section active">
+        <!-- Filter Tabs -->
+        <section class="data-section">
+            <div class="section-header">
+                <h2>Startup Pipeline</h2>
+                <div class="header-controls">
+                    <div class="filter-tabs">
+                        <button class="filter-btn active" data-filter="all">All</button>
+                        <button class="filter-btn" data-filter="PENDING">Pending</button>
+                        <button class="filter-btn" data-filter="SENT">Sent</button>
+                        <button class="filter-btn" data-filter="REPLIED">Replied</button>
+                        <button class="filter-btn" data-filter="FAILED">Failed</button>
+                    </div>
+                    <button id="refresh-btn" class="refresh-btn">
+                        <i class="ph ph-arrows-clockwise"></i> Refresh
+                    </button>
+                </div>
+            </div>
+
+            <!-- Search -->
+            <div class="search-bar">
+                <i class="ph ph-magnifying-glass"></i>
+                <input type="text" id="search-input" placeholder="Search startups, emails, or sources...">
+            </div>
+
+            <!-- Table -->
+            <div class="table-container">
+                <table id="leads-table">
+                    <thead>
+                        <tr>
+                            <th>Startup</th>
+                            <th>Email</th>
+                            <th>Source</th>
+                            <th>Status</th>
+                            <th>Scraped At</th>
+                            <th>Emailed At</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody id="leads-body">
+                        <tr>
+                            <td colspan="7" class="empty-state">
+                                <i class="ph ph-spinner-gap spin empty-icon"></i>
+                                <p>Connecting to Supabase...</p>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Pagination -->
+            <div class="pagination" id="pagination"></div>
+        </section>
+        </div>
+
+        <!-- Analytics View -->
+        <div id="view-analytics" class="view-section" style="display: none;">
+            <section class="data-section">
+                <div class="section-header">
+                    <h2>Daily Outbound Analytics</h2>
+                </div>
+                <div class="table-container">
+                    <table id="analytics-table">
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th>Scraped</th>
+                                <th>Emails Sent</th>
+                                <th>Replies (Same Day)</th>
+                                <th>Failed</th>
+                            </tr>
+                        </thead>
+                        <tbody id="analytics-body">
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+        </div>
+
+        <!-- Feed View -->
+        <div id="view-feed" class="view-section" style="display: none;">
+            <section class="data-section">
+                <div class="section-header">
+                    <h2><i class="ph ph-list"></i> Email Feed</h2>
+                </div>
+                <div id="feed-container" class="feed-container">
+                    <div class="empty-state">
+                        <i class="ph ph-spinner-gap spin empty-icon"></i>
+                        <p>Loading emails...</p>
+                    </div>
+                </div>
+            </section>
+        </div>
+
+        <!-- Footer -->
+        <footer>
+            <p>Handcrafted by <strong>Fayz</strong> — Powered by Supabase, SerpApi, & Groq AI</p>
+        </footer>
+    </div>
+
+    <!-- Email Viewer Modal -->
+    <div id="email-modal" class="modal-overlay">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2><i class="ph ph-envelope-open"></i> Email Preview</h2>
+                <button class="modal-close" id="close-modal"><i class="ph ph-x"></i></button>
+            </div>
+            <div class="modal-body">
+                <div class="email-meta">
+                    <div class="meta-row"><strong>To:</strong> <span id="modal-to"></span></div>
+                    <div class="meta-row"><strong>Subject:</strong> <span id="modal-subject"></span></div>
+                </div>
+                <div class="email-html" id="modal-html"></div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="app.js"></script>
+</body>
+</html>

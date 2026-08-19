@@ -1,0 +1,10 @@
+{
+  "name": "startup-sender",
+  "version": "1.0.0",
+  "description": "Sends cold emails to startups via Mailjet",
+  "main": "index.js",
+  "dependencies": {
+    "@supabase/supabase-js": "^2.45.1",
+    "dotenv": "^16.4.5"
+  }
+}

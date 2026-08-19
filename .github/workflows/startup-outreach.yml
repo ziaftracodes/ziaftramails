@@ -1,0 +1,50 @@
+name: Startup Outreach (Daily Pipeline)
+
+on:
+  schedule:
+    # Runs every day at 11:00 AM UTC (4:30 PM IST)
+    - cron: '0 11 * * *'
+  workflow_dispatch:
+
+jobs:
+  scrape-and-send:
+    runs-on: ubuntu-latest
+    timeout-minutes: 480
+    steps:
+      - name: 📦 Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: 🟢 Setup Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      # ── SCRAPER PHASE ──
+      - name: 📥 Install Scraper Dependencies
+        working-directory: ./startup-scraper
+        run: npm ci --omit=dev || npm install --omit=dev
+
+      - name: 🤖 Run Startup Scraper
+        working-directory: ./startup-scraper
+        run: node index.js
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+          SERPER_API_KEY: ${{ secrets.SERPER_API_KEY }}
+          SCRAPE_LIMIT: 20
+
+      # ── SENDER PHASE ──
+      - name: 📥 Install Sender Dependencies
+        working-directory: ./startup-sender
+        run: npm ci --omit=dev || npm install --omit=dev
+
+      - name: 🚀 Run Startup Sender
+        working-directory: ./startup-sender
+        run: node index.js
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
+          MAILJET_API_KEY: ${{ secrets.MAILJET_API_KEY }}
+          MAILJET_API_SECRET: ${{ secrets.MAILJET_API_SECRET }}
+          SENDER_EMAIL: ${{ secrets.SENDER_EMAIL }}
