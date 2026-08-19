@@ -47,8 +47,7 @@ jobs:
           SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
           RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
           BREVO_API_KEY: ${{ secrets.BREVO_API_KEY }}
-          MAILJET_API_KEY: ${{ secrets.MAILJET_API_KEY }}
-          MAILJET_API_SECRET: ${{ secrets.MAILJET_API_SECRET }}
+
           SENDER_EMAIL: ${{ secrets.SENDER_EMAIL }}
           DAILY_LIMIT: ${{ secrets.DAILY_LIMIT }}
           DRY_RUN: false

@@ -14,32 +14,115 @@ const SERPER_API_KEY = process.env.SERPER_API_KEY;
 // This ensures fresh, diverse leads from different niches & cities.
 // ═══════════════════════════════════════════════════════════════
 const SEARCH_QUERIES = [
-    // Web Dev & Creative (Full-Stack Pitch)
-    "web development agencies in New York NY",
-    "web development agencies in Los Angeles CA",
-    "web design companies in Chicago IL",
-    "web development companies in Miami FL",
-    "software development agencies in Seattle WA",
-    "ecommerce development agencies in San Francisco CA",
-    "WordPress development agencies in Denver CO",
-    "Shopify development agencies in Boston MA",
-    "mobile app development agencies in Atlanta GA",
-    "UI UX design agencies in Portland OR",
-    "web design agencies in Dallas TX",
-    "creative agencies in Brooklyn NY",
-    
-    // Marketing & Lead Gen (Landing Page Pitch)
-    "Performance marketing agencies in Chicago IL",
-    "Lead generation companies in Austin TX",
-    "Digital advertising agencies in Miami FL",
-    "B2B marketing firms in Seattle WA",
-    "PPC management agencies in Denver CO",
-    "Social media marketing agencies in San Diego CA",
-    "Performance marketing agencies in New York NY",
-    "Lead generation companies in Los Angeles CA",
-    "Digital advertising agencies in San Francisco CA",
-    "B2B marketing firms in Boston MA",
-    "PPC management agencies in Atlanta GA",
+    // ══════════════════════════════════════
+    // 🇬🇧 UK — Web Dev & Creative
+
+    // ══════════════════════════════════════
+    "web development agencies in London",
+    "web design agencies in Manchester",
+    "web development companies in Birmingham",
+    "creative digital agencies in Edinburgh",
+    "software development agencies in Bristol",
+    "ecommerce development agencies in Leeds",
+    "web development companies in Glasgow",
+    "WordPress development agencies in Brighton",
+
+    // 🇬🇧 UK — Marketing & Lead Gen
+    "Performance marketing agencies in London",
+    "Digital advertising agencies in Manchester",
+    "Lead generation companies in Birmingham",
+    "PPC management agencies in Leeds",
+    "Social media marketing agencies in Bristol",
+
+    // ══════════════════════════════════════
+    // 🇦🇺 AUSTRALIA — Web Dev & Creative
+    // ══════════════════════════════════════
+    "web development agencies in Sydney Australia",
+    "web design agencies in Melbourne Australia",
+    "web development companies in Brisbane Australia",
+    "software development agencies in Perth Australia",
+    "ecommerce development agencies in Adelaide Australia",
+    "creative digital agencies in Gold Coast Australia",
+    "WordPress development agencies in Canberra Australia",
+    "Shopify development agencies in Hobart Australia",
+
+    // 🇦🇺 AUSTRALIA — Marketing & Lead Gen
+    "Digital marketing agencies in Sydney Australia",
+    "Performance marketing agencies in Melbourne Australia",
+    "Lead generation companies in Brisbane Australia",
+    "PPC management agencies in Perth Australia",
+    "Digital advertising agencies in Adelaide Australia",
+
+    // ══════════════════════════════════════
+    // 🇳🇿 NEW ZEALAND
+    // ══════════════════════════════════════
+    "web development agencies in Auckland New Zealand",
+    "web design companies in Wellington New Zealand",
+    "digital agencies in Christchurch New Zealand",
+    "software development agencies in Hamilton New Zealand",
+
+    // ══════════════════════════════════════
+    // 🇨🇦 CANADA — Web Dev & Creative
+    // ══════════════════════════════════════
+    "web development agencies in Toronto Canada",
+    "web design agencies in Vancouver Canada",
+    "software development companies in Montreal Canada",
+    "web development agencies in Calgary Canada",
+    "ecommerce development agencies in Ottawa Canada",
+    "creative digital agencies in Edmonton Canada",
+    "WordPress development agencies in Winnipeg Canada",
+
+    // 🇨🇦 CANADA — Marketing & Lead Gen
+    "Digital marketing agencies in Toronto Canada",
+    "Performance marketing agencies in Vancouver Canada",
+    "Lead generation companies in Montreal Canada",
+    "PPC management agencies in Calgary Canada",
+
+    // ══════════════════════════════════════
+    // 🇦🇪 UAE / MIDDLE EAST
+    // ══════════════════════════════════════
+    "web development agencies in Dubai",
+    "web design companies in Abu Dhabi",
+    "software development agencies in Dubai UAE",
+    "ecommerce development agencies in Dubai",
+    "digital agencies in Sharjah UAE",
+    "web development companies in Riyadh Saudi Arabia",
+    "web development agencies in Doha Qatar",
+    "digital marketing agencies in Dubai UAE",
+    "Performance marketing agencies in Dubai",
+    "Lead generation companies in Abu Dhabi",
+
+    // ══════════════════════════════════════
+    // 🇩🇪🇳🇱🇸🇪 WESTERN EUROPE
+    // ══════════════════════════════════════
+    "web development agencies in Berlin Germany",
+    "web design agencies in Amsterdam Netherlands",
+    "software development companies in Stockholm Sweden",
+    "digital agencies in Copenhagen Denmark",
+    "web development agencies in Munich Germany",
+    "ecommerce development agencies in Rotterdam Netherlands",
+    "web development companies in Oslo Norway",
+    "creative digital agencies in Helsinki Finland",
+    "web development agencies in Dublin Ireland",
+    "digital agencies in Zurich Switzerland",
+
+    // 🇪🇺 WESTERN EUROPE — Marketing
+    "Digital marketing agencies in Berlin Germany",
+    "Performance marketing agencies in Amsterdam Netherlands",
+    "Digital advertising agencies in Stockholm Sweden",
+    "Lead generation companies in Dublin Ireland",
+
+    // ══════════════════════════════════════
+    // 🇸🇬🇵🇭 SINGAPORE / SOUTHEAST ASIA
+    // ══════════════════════════════════════
+    "web development agencies in Singapore",
+    "web design companies in Singapore",
+    "software development agencies in Kuala Lumpur Malaysia",
+    "web development companies in Bangkok Thailand",
+    "digital agencies in Manila Philippines",
+    "ecommerce development agencies in Jakarta Indonesia",
+    "digital marketing agencies in Singapore",
+    "Performance marketing agencies in Kuala Lumpur Malaysia",
 ];
 
 // Pick today's query based on the day of the year (auto-rotates daily)
@@ -151,7 +234,7 @@ Rules:
                 },
                 { role: 'user', content: plainText.substring(0, 3000) }
             ],
-            model: 'llama-3.1-8b-instant',
+            model: 'qwen/qwen3.6-27b',
             response_format: { type: 'json_object' },
             temperature: 0.7,
         });

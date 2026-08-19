@@ -126,39 +126,18 @@ async function sendViaBrevo(toEmail, toName, subject, htmlContent) {
     }
 }
 
-async function sendViaMailjet(toEmail, toName, subject, htmlContent) {
-    const auth = Buffer.from(process.env.MAILJET_API_KEY + ':' + process.env.MAILJET_API_SECRET).toString('base64');
-    const response = await fetch('https://api.mailjet.com/v3.1/send', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': 'Basic ' + auth },
-        body: JSON.stringify({
-            Messages: [{
-                From: { Email: process.env.SENDER_EMAIL, Name: 'Fayz' },
-                To: [{ Email: toEmail, Name: toName }],
-                Subject: subject,
-                HTMLPart: htmlContent
-            }]
-        })
-    });
-    if (!response.ok) {
-        const err = await response.json();
-        throw new Error(`Mailjet: ${JSON.stringify(err)}`);
-    }
-}
+
 
 // ═══════════════════════════════════════════════════════════════
 // 📝 EMAIL TEMPLATE — Professional, clean HTML email
 // ═══════════════════════════════════════════════════════════════
 function buildWebDevEmailHtml(agency) {
     return `
-<p>Hi team,</p>
-<p>${agency.personalized_intro || ''}</p>
-<p>I'm a full-stack developer (React, Next.js, Node.js) reaching out to see if ${agency.name} ever works with external development partners during busy periods.</p>
-<p>My entire focus is partnering with established digital agencies to handle their paid overflow and outsourcing work on a project or contract basis.</p>
-<p>If your internal team ever gets overloaded or you need to offload web applications, API integrations, or frontend/backend implementation, I would love to be your go-to external partner.</p>
-<p>I know it's risky to trust a new developer with your client work. That's why I'm happy to do a completely free, fixed-scope trial task — literally any kind of work you want to throw at me — just so you can evaluate my code quality and communication firsthand.</p>
-<p>You can check out my portfolio here: <a href="https://fayzz.in">fayzz.in</a></p>
-<p>If you're open to an external partnership — or if you just want to test me out with a free task this week — I'd love to chat.</p>
+<p>Hey team,</p>
+<p>${agency.personalized_intro || `I was checking out your work at ${agency.name} and really liked what I saw.`}</p>
+<p>I'm a full-stack dev based in India (React, Next.js, Node.js). I know digital agencies often have more client work than internal capacity during busy months.</p>
+<p>If your team ever gets overloaded and needs an extra pair of hands to offload web apps, API integrations, or just crank out code, I can step in as a reliable external partner.</p>
+<p>I know trusting a new dev is risky, so I'm happy to do a small free trial task just to prove my speed and code quality. Worth a quick chat?</p>
 <p>
 Best,<br>
 Fayz<br>
@@ -169,14 +148,11 @@ Full-Stack Developer<br>
 
 function buildMarketingEmailHtml(agency) {
     return `
-<p>Hi team,</p>
-<p>${agency.personalized_intro || ''}</p>
-<p>I'm a web developer specializing in fast-turnaround landing pages, and I'm reaching out to see if ${agency.name} ever needs an extra set of hands during busy campaign periods.</p>
-<p>My entire focus is helping digital advertising and lead-generation agencies handle their overflow by rapidly building clean, high-converting landing pages, marketing funnels, and simple promotional sites.</p>
-<p>When your internal team gets bottlenecked launching new client campaigns, I can step in as a reliable external partner to just crank out the landing pages you need on time.</p>
-<p>I know it's risky to trust a new developer with client work. That's why I'm happy to do a completely free, fixed-scope trial task — a free landing page build — just so you can evaluate my speed and quality firsthand.</p>
-<p>You can check out my portfolio here: <a href="https://fayzz.in">fayzz.in</a></p>
-<p>If you're open to an external partnership for high-volume work — or if you just want to test me out with a free page this week — I'd love to chat.</p>
+<p>Hey team,</p>
+<p>${agency.personalized_intro || `I was checking out your campaigns at ${agency.name} and really liked your approach.`}</p>
+<p>I'm a web developer specializing in fast-turnaround landing pages. I know performance agencies often get bottlenecked launching new campaigns for clients.</p>
+<p>If your internal team ever needs an extra set of hands to rapidly build out clean, high-converting landing pages or funnels, I can step in to clear the backlog.</p>
+<p>I know trusting a new dev is risky, so I'm happy to build one landing page completely free just to prove my speed and quality. Worth a quick chat?</p>
 <p>
 Best,<br>
 Fayz<br>
@@ -199,9 +175,10 @@ async function runSender() {
     console.log(`${'═'.repeat(60)}\n`);
 
     try {
-        const overrideLimit = parseInt(process.env.DAILY_LIMIT, 10);
         const warmupSettings = await getDynamicWarmupSettings();
-        const DAILY_LIMIT = overrideLimit || warmupSettings.limit;
+        // DAILY_LIMIT env var can only act as a safety CAP, never reduce the warm-up limit
+        const overrideCap = parseInt(process.env.DAILY_LIMIT, 10);
+        const DAILY_LIMIT = (overrideCap && overrideCap > warmupSettings.limit) ? overrideCap : warmupSettings.limit;
 
         console.log(`\n🔍 Fetching up to ${DAILY_LIMIT} PENDING leads...`);
         const { data: leads, error } = await supabase
@@ -242,7 +219,6 @@ async function runSender() {
         const providers = [
             { name: 'RESEND',  fn: sendViaResend,  limit: 100, used: 0, enabled: !!process.env.RESEND_API_KEY },
             { name: 'BREVO',   fn: sendViaBrevo,   limit: 300, used: 0, enabled: !!process.env.BREVO_API_KEY },
-            { name: 'MAILJET', fn: sendViaMailjet,  limit: 200, used: 0, enabled: !!(process.env.MAILJET_API_KEY && process.env.MAILJET_API_SECRET) },
         ];
 
         let totalSent = 0;
